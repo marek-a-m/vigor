@@ -1,0 +1,225 @@
+import Foundation
+import HealthKit
+
+@MainActor
+final class HealthKitManager: ObservableObject {
+    private let healthStore = HKHealthStore()
+
+    @Published var isAuthorized = false
+    @Published var metrics = HealthMetrics()
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let readTypes: Set<HKObjectType> = {
+        var types: Set<HKObjectType> = [
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
+            HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
+        ]
+        if let tempType = HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature) {
+            types.insert(tempType)
+        }
+        return types
+    }()
+
+    func requestAuthorization() async {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            errorMessage = "Health data not available on this device"
+            return
+        }
+
+        do {
+            try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+            isAuthorized = true
+            await fetchAllMetrics()
+        } catch {
+            errorMessage = "Failed to authorize HealthKit: \(error.localizedDescription)"
+        }
+    }
+
+    func fetchAllMetrics() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        async let sleep = fetchSleepData()
+        async let hrv = fetchHRVData()
+        async let rhr = fetchRestingHeartRate()
+        async let temp = fetchWristTemperature()
+        async let hrvBase = fetchHRVBaseline()
+        async let rhrBase = fetchRHRBaseline()
+
+        metrics.sleepHours = await sleep
+        metrics.hrv = await hrv
+        metrics.restingHeartRate = await rhr
+        metrics.wristTemperatureDeviation = await temp
+        metrics.hrvBaseline = await hrvBase
+        metrics.rhrBaseline = await rhrBase
+    }
+
+    private func fetchSleepData() async -> Double? {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfYesterday,
+            end: now,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                guard let samples = samples as? [HKCategorySample], error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let asleepValues: Set<Int> = [
+                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepREM.rawValue
+                ]
+
+                let totalSleep = samples
+                    .filter { asleepValues.contains($0.value) }
+                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+
+                let hours = totalSleep / 3600.0
+                continuation.resume(returning: hours > 0 ? hours : nil)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchHRVData() async -> Double? {
+        await fetchLatestQuantity(
+            typeIdentifier: .heartRateVariabilitySDNN,
+            unit: HKUnit.secondUnit(with: .milli)
+        )
+    }
+
+    private func fetchRestingHeartRate() async -> Double? {
+        await fetchLatestQuantity(
+            typeIdentifier: .restingHeartRate,
+            unit: HKUnit.count().unitDivided(by: .minute())
+        )
+    }
+
+    private func fetchWristTemperature() async -> Double? {
+        await fetchLatestQuantity(
+            typeIdentifier: .appleSleepingWristTemperature,
+            unit: HKUnit.degreeCelsius()
+        )
+    }
+
+    private func fetchLatestQuantity(
+        typeIdentifier: HKQuantityTypeIdentifier,
+        unit: HKUnit
+    ) async -> Double? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfYesterday,
+            end: now,
+            options: .strictStartDate
+        )
+
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                guard let sample = samples?.first as? HKQuantitySample, error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let value = sample.quantity.doubleValue(for: unit)
+                continuation.resume(returning: value)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchHRVBaseline() async -> Double? {
+        await fetchAverageOverDays(
+            typeIdentifier: .heartRateVariabilitySDNN,
+            unit: HKUnit.secondUnit(with: .milli),
+            days: 30
+        )
+    }
+
+    private func fetchRHRBaseline() async -> Double? {
+        await fetchAverageOverDays(
+            typeIdentifier: .restingHeartRate,
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            days: 30
+        )
+    }
+
+    private func fetchAverageOverDays(
+        typeIdentifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        days: Int
+    ) async -> Double? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startDate = calendar.date(byAdding: .day, value: -days, to: now)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: now,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                guard let samples = samples as? [HKQuantitySample],
+                      !samples.isEmpty,
+                      error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let total = samples.reduce(0.0) { $0 + $1.quantity.doubleValue(for: unit) }
+                let average = total / Double(samples.count)
+                continuation.resume(returning: average)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+}
