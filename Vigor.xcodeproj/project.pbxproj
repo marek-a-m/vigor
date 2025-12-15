@@ -15,6 +15,7 @@
 		53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A791C6EFD70BE5264E8464 /* VigorApp.swift */; };
 		6C4F0811FFF9527E72919612 /* VigorWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47D2B36DD0E81A227CE50331 /* VigorWidget.swift */; };
 		7A69ABC98A434357A41737F7 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665E1DAF850D2BF03CDFE240 /* HistoryView.swift */; };
+		8A30121BBFFE1C89AE4F44DE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */; };
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */; };
 		DC25980EDB175141DD37DACD /* VigorWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5189CBC2366D89421DD94045 /* VigorWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -62,6 +63,7 @@
 		AA3AF43910784667516D43C6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		AEC13F07B557563C2847627A /* VigorCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorCalculator.swift; sourceTree = "<group>"; };
 		C1EBF7C4C7543693138F0BD8 /* VigorWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VigorWidget.entitlements; sourceTree = "<group>"; };
+		CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D9A7817A386857F6DC787C57 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F774F2E9162064DC616C7B5A /* HealthMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMetrics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -91,6 +93,7 @@
 				451BF40FEF365DE6797E8934 /* Assets.xcassets */,
 				D9A7817A386857F6DC787C57 /* ContentView.swift */,
 				516DC190ADEA2BA3A8661DC3 /* Info.plist */,
+				CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */,
 				7DFCDC8A44540A250CF82A4D /* Vigor.entitlements */,
 				21A791C6EFD70BE5264E8464 /* VigorApp.swift */,
 				9002EC9C46982E637575300F /* Models */,
@@ -231,6 +234,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DDF11242046669334C6F1975 /* Assets.xcassets in Resources */,
+				8A30121BBFFE1C89AE4F44DE /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

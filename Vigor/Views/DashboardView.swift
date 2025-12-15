@@ -29,8 +29,14 @@ struct DashboardView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Vigor")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Image("Banner")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 32)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await refreshData() }
