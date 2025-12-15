@@ -26,6 +26,8 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
+    <key>UIRequiresFullScreen</key>
+    <true/>
     <key>NSHealthShareUsageDescription</key>
     <string>Vigor needs access to your health data to calculate your daily recovery score based on sleep, HRV, resting heart rate, and body temperature.</string>
     <key>NSHealthUpdateUsageDescription</key>

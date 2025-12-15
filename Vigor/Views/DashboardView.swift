@@ -3,21 +3,30 @@ import SwiftData
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var healthManager = HealthKitManager()
-    @State private var currentScore: VigorScore?
-    @State private var isCalculating = false
+    @Query(sort: \VigorScore.date, order: .reverse) private var allScores: [VigorScore]
 
-    private let calculator = VigorCalculator()
+    var syncManager: SyncManager?
+    var healthKitManager: HealthKitManager
+
+    private var todayScore: VigorScore? {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return allScores.first { calendar.startOfDay(for: $0.date) == today }
+    }
+
+    private var isLoading: Bool {
+        healthKitManager.isLoading || (syncManager?.isSyncing ?? false)
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    if !healthManager.isAuthorized {
+                    if !healthKitManager.isAuthorized {
                         authorizationCard
-                    } else if healthManager.isLoading || isCalculating {
+                    } else if isLoading {
                         loadingView
-                    } else if let score = currentScore {
+                    } else if let score = todayScore {
                         scoreCard(score)
                         metricsBreakdown(score)
                         if score.hasMissingData {
@@ -43,13 +52,15 @@ struct DashboardView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .disabled(!healthManager.isAuthorized || healthManager.isLoading)
+                    .disabled(!healthKitManager.isAuthorized || isLoading)
                 }
             }
-        }
-        .task {
-            await healthManager.requestAuthorization()
-            await calculateScore()
+            .onChange(of: todayScore?.score) { _, _ in
+                updateWidgetData()
+            }
+            .onAppear {
+                updateWidgetData()
+            }
         }
     }
 
@@ -69,7 +80,12 @@ struct DashboardView: View {
                 .multilineTextAlignment(.center)
 
             Button("Grant Access") {
-                Task { await healthManager.requestAuthorization() }
+                Task {
+                    await healthKitManager.requestAuthorization()
+                    if healthKitManager.isAuthorized {
+                        await syncManager?.performSync()
+                    }
+                }
             }
             .buttonStyle(.borderedProminent)
         }
@@ -229,32 +245,23 @@ struct DashboardView: View {
     }
 
     private func refreshData() async {
-        await healthManager.fetchAllMetrics()
-        await calculateScore()
+        await syncManager?.performSync()
+        updateWidgetData()
     }
 
-    private func calculateScore() async {
-        isCalculating = true
-        defer { isCalculating = false }
+    private func updateWidgetData() {
+        guard let score = todayScore else { return }
 
-        let score = calculator.calculate(from: healthManager.metrics)
-
-        if score.score > 0 || !score.missingMetrics.isEmpty {
-            currentScore = score
-            modelContext.insert(score)
-            try? modelContext.save()
-
-            let sharedData = SharedVigorData(
-                score: score.score,
-                date: score.date,
-                sleepScore: score.sleepScore,
-                hrvScore: score.hrvScore,
-                rhrScore: score.rhrScore,
-                temperatureScore: score.temperatureScore,
-                missingMetrics: score.missingMetrics
-            )
-            SharedDataManager.shared.saveLatestScore(sharedData)
-        }
+        let sharedData = SharedVigorData(
+            score: score.score,
+            date: score.date,
+            sleepScore: score.sleepScore,
+            hrvScore: score.hrvScore,
+            rhrScore: score.rhrScore,
+            temperatureScore: score.temperatureScore,
+            missingMetrics: score.missingMetrics
+        )
+        SharedDataManager.shared.saveLatestScore(sharedData)
     }
 }
 
@@ -303,6 +310,6 @@ struct MetricRow: View {
 }
 
 #Preview {
-    DashboardView()
-        .modelContainer(for: VigorScore.self, inMemory: true)
+    DashboardView(syncManager: nil, healthKitManager: HealthKitManager())
+        .modelContainer(for: [VigorScore.self, DailyMetrics.self], inMemory: true)
 }

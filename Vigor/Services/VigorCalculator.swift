@@ -2,7 +2,7 @@ import Foundation
 
 struct VigorCalculator {
 
-    func calculate(from metrics: HealthMetrics) -> VigorScore {
+    func calculate(from metrics: HealthMetrics, date: Date = Date()) -> VigorScore {
         var scores: [(MetricType, Double)] = []
         var totalWeight: Double = 0
 
@@ -46,7 +46,7 @@ struct VigorCalculator {
         let tempScoreValue = scores.first { $0.0 == .temperature }.map { $0.1 * 100 }
 
         return VigorScore(
-            date: Date(),
+            date: date,
             score: min(100, max(0, finalScore)),
             sleepScore: sleepScoreValue,
             hrvScore: hrvScoreValue,

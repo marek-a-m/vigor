@@ -6,16 +6,28 @@ struct VigorApp: App {
     let modelContainer: ModelContainer
 
     init() {
+        let schema = Schema([VigorScore.self, DailyMetrics.self])
+
+        // Try CloudKit first, fall back to local storage if it fails
         do {
-            let schema = Schema([VigorScore.self])
-            let modelConfiguration = ModelConfiguration(
+            let cloudConfig = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false,
-                groupContainer: .identifier("group.com.vigor.shared")
+                cloudKitDatabase: .private("iCloud.com.vigor.app")
             )
-            modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            modelContainer = try ModelContainer(for: schema, configurations: [cloudConfig])
         } catch {
-            fatalError("Could not initialize ModelContainer: \(error)")
+            print("CloudKit initialization failed: \(error). Falling back to local storage.")
+            do {
+                let localConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    cloudKitDatabase: .none
+                )
+                modelContainer = try ModelContainer(for: schema, configurations: [localConfig])
+            } catch {
+                fatalError("Could not initialize ModelContainer: \(error)")
+            }
         }
     }
 

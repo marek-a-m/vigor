@@ -217,5 +217,5 @@ enum TimeRange: String, CaseIterable {
 
 #Preview {
     HistoryView()
-        .modelContainer(for: VigorScore.self, inMemory: true)
+        .modelContainer(for: [VigorScore.self, DailyMetrics.self], inMemory: true)
 }

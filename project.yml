@@ -40,6 +40,11 @@ targets:
           - group.com.vigor.shared
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.vigor.app
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)com.vigor.app
     dependencies:
       - target: VigorWidget
         embed: true
