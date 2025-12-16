@@ -8,17 +8,17 @@
 	<array/>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.com.vigor.app</string>
+		<string>iCloud.cloud.buggygames.vigor</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>
 		<string>CloudKit</string>
 	</array>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
-	<string>$(TeamIdentifierPrefix)com.vigor.app</string>
+	<string>$(TeamIdentifierPrefix)cloud.buggygames.vigor</string>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.vigor.shared</string>
+		<string>group.cloud.buggygames.vigor</string>
 	</array>
 </dict>
 </plist>

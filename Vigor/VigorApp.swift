@@ -13,7 +13,7 @@ struct VigorApp: App {
             let cloudConfig = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false,
-                cloudKitDatabase: .private("iCloud.com.vigor.app")
+                cloudKitDatabase: .private("iCloud.cloud.buggygames.vigor")
             )
             modelContainer = try ModelContainer(for: schema, configurations: [cloudConfig])
         } catch {

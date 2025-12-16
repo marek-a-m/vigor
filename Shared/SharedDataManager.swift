@@ -25,7 +25,7 @@ struct SharedVigorData: Codable {
 
 final class SharedDataManager {
     static let shared = SharedDataManager()
-    private let appGroupID = "group.com.vigor.shared"
+    private let appGroupID = "group.cloud.buggygames.vigor"
     private let dataKey = "latestVigorScore"
 
     private var sharedDefaults: UserDefaults? {

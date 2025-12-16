@@ -1,6 +1,6 @@
 name: Vigor
 options:
-  bundleIdPrefix: com.vigor
+  bundleIdPrefix: cloud.buggygames.vigor
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "15.0"
@@ -31,20 +31,20 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Vigor/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.vigor.app
+        PRODUCT_BUNDLE_IDENTIFIER: cloud.buggygames.vigor
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: Vigor/Vigor.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.vigor.shared
+          - group.cloud.buggygames.vigor
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
         com.apple.developer.icloud-container-identifiers:
-          - iCloud.com.vigor.app
+          - iCloud.cloud.buggygames.vigor
         com.apple.developer.icloud-services:
           - CloudKit
-        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)com.vigor.app
+        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)cloud.buggygames.vigor
     dependencies:
       - target: VigorWidget
         embed: true
@@ -58,9 +58,9 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: VigorWidget/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.vigor.app.widget
+        PRODUCT_BUNDLE_IDENTIFIER: cloud.buggygames.vigor.widget
     entitlements:
       path: VigorWidget/VigorWidget.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.vigor.shared
+          - group.cloud.buggygames.vigor

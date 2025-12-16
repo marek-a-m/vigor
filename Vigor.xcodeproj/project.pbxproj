@@ -296,7 +296,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.vigor.app;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.buggygames.vigor;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -312,7 +312,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.vigor.app.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.buggygames.vigor.widget;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -328,7 +328,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.vigor.app.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.buggygames.vigor.widget;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -403,7 +403,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.vigor.app;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.buggygames.vigor;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
