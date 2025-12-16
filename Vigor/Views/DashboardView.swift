@@ -18,10 +18,30 @@ struct DashboardView: View {
         healthKitManager.isLoading || (syncManager?.isSyncing ?? false)
     }
 
+    private let backgroundColor = Color(red: 0.118, green: 0.129, blue: 0.165)
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Banner at top
+                    HStack {
+                        Image("Banner")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 64)
+                        Spacer()
+                        Button {
+                            Task { await refreshData() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                        }
+                        .disabled(!healthKitManager.isAuthorized || isLoading)
+                    }
+                    .padding(.bottom, 8)
+
                     if !healthKitManager.isAuthorized {
                         authorizationCard
                     } else if isLoading {
@@ -37,24 +57,11 @@ struct DashboardView: View {
                     }
                 }
                 .padding()
+                .padding(.top, 8)
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Image("Banner")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 32)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await refreshData() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(!healthKitManager.isAuthorized || isLoading)
-                }
-            }
+            .scrollContentBackground(.hidden)
+            .background(backgroundColor.ignoresSafeArea())
+            .toolbarBackground(.hidden, for: .navigationBar)
             .onChange(of: todayScore?.score) { _, _ in
                 updateWidgetData()
             }

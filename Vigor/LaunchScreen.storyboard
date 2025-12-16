@@ -15,17 +15,16 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreen" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ew4">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreen" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ew4">
+                                <rect key="frame" x="0.0" y="314" width="393" height="224"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" red="0.11764705882352941" green="0.12941176470588237" blue="0.16470588235294117" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ew4" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="1Hl-Bl-RWt"/>
                             <constraint firstItem="YRO-k0-Ew4" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="4kT-P7-bQZ"/>
                             <constraint firstAttribute="trailing" secondItem="YRO-k0-Ew4" secondAttribute="trailing" id="8IG-yd-DLu"/>
-                            <constraint firstAttribute="bottom" secondItem="YRO-k0-Ew4" secondAttribute="bottom" id="gJV-IL-0k8"/>
+                            <constraint firstItem="YRO-k0-Ew4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="cYc-Ew-1Yp"/>
                         </constraints>
                     </view>
                 </viewController>
