@@ -128,10 +128,42 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func fetchWristTemperature() async -> Double? {
-        await fetchLatestQuantity(
-            typeIdentifier: .appleSleepingWristTemperature,
-            unit: HKUnit.degreeCelsius()
+        // Wrist temperature is recorded when you wake up, use wider window to ensure we catch it
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        // Look back 2 days to ensure we catch the most recent sleep temperature
+        let startDate = calendar.date(byAdding: .day, value: -2, to: calendar.startOfDay(for: now))!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: now,
+            options: .strictStartDate
         )
+
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                guard let sample = samples?.first as? HKQuantitySample, error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let value = sample.quantity.doubleValue(for: HKUnit.degreeCelsius())
+                continuation.resume(returning: value)
+            }
+
+            self.healthStore.execute(query)
+        }
     }
 
     private func fetchLatestQuantity(
@@ -273,12 +305,7 @@ final class HealthKitManager: ObservableObject {
             from: start,
             to: end
         )
-        async let tempData = fetchHistoricalQuantity(
-            typeIdentifier: .appleSleepingWristTemperature,
-            unit: HKUnit.degreeCelsius(),
-            from: start,
-            to: end
-        )
+        async let tempData = fetchHistoricalWristTemperature(from: start, to: end)
 
         let (sleep, hrv, rhr, temp) = await (sleepData, hrvData, rhrData, tempData)
 
@@ -344,6 +371,51 @@ final class HealthKitManager: ObservableObject {
                 }
 
                 continuation.resume(returning: sleepByDay)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    /// Fetch historical wrist temperature using sample query (statistics don't work well for this type)
+    private func fetchHistoricalWristTemperature(from startDate: Date, to endDate: Date) async -> [Date: Double] {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+            return [:]
+        }
+
+        let calendar = Calendar.current
+        // Extend range to catch edge cases
+        let adjustedStart = calendar.date(byAdding: .day, value: -1, to: startDate)!
+        let adjustedEnd = calendar.date(byAdding: .day, value: 1, to: endDate)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: adjustedStart,
+            end: adjustedEnd,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)]
+            ) { _, samples, error in
+                guard let samples = samples as? [HKQuantitySample], error == nil else {
+                    continuation.resume(returning: [:])
+                    return
+                }
+
+                var valuesByDay: [Date: Double] = [:]
+                for sample in samples {
+                    // Associate temperature with the day it was recorded (wake day)
+                    let day = calendar.startOfDay(for: sample.endDate)
+                    let value = sample.quantity.doubleValue(for: HKUnit.degreeCelsius())
+                    // Keep the most recent value for each day
+                    valuesByDay[day] = value
+                }
+
+                continuation.resume(returning: valuesByDay)
             }
 
             healthStore.execute(query)
