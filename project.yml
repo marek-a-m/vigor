@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: cloud.buggygames.vigor
   deploymentTarget:
     iOS: "17.0"
+    watchOS: "10.0"
   xcodeVersion: "15.0"
   createIntermediateGroups: true
 
@@ -15,6 +16,14 @@ schemes:
     run:
       config: Debug
       executable: Vigor
+
+  VigorWatch:
+    build:
+      targets:
+        VigorWatch: all
+    run:
+      config: Debug
+      executable: VigorWatch
 
 settings:
   base:
@@ -64,3 +73,21 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.cloud.buggygames.vigor
+
+  VigorWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: VigorWatch
+      - path: Shared
+    settings:
+      base:
+        INFOPLIST_FILE: VigorWatch/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: cloud.buggygames.vigor.watch
+    entitlements:
+      path: VigorWatch/VigorWatch.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.cloud.buggygames.vigor
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
