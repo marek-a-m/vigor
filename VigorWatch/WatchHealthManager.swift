@@ -40,6 +40,14 @@ final class WatchHealthManager: ObservableObject {
         currentHeartRate = await hr
         stepsToday = await steps
         floorsClimbed = await floors
+
+        // Save to shared storage for widgets
+        let watchData = SharedWatchData(
+            heartRate: currentHeartRate.map { Int($0) },
+            steps: stepsToday,
+            date: Date()
+        )
+        SharedDataManager.shared.saveWatchData(watchData)
     }
 
     private func fetchLatestHeartRate() async -> Double? {

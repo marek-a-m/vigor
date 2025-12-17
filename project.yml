@@ -21,6 +21,7 @@ schemes:
     build:
       targets:
         VigorWatch: all
+        VigorWatchWidget: all
     run:
       config: Debug
       executable: VigorWatch
@@ -91,3 +92,22 @@ targets:
           - group.cloud.buggygames.vigor
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
+    dependencies:
+      - target: VigorWatchWidget
+        embed: true
+
+  VigorWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: VigorWatchWidget
+      - path: Shared
+    settings:
+      base:
+        INFOPLIST_FILE: VigorWatchWidget/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: cloud.buggygames.vigor.watch.widget
+    entitlements:
+      path: VigorWatchWidget/VigorWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.cloud.buggygames.vigor
