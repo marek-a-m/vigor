@@ -96,21 +96,13 @@ final class SyncManager: ObservableObject {
         syncProgress = 1.0
     }
 
-    /// Incremental sync: only fetch data since last sync
+    /// Incremental sync: fetch last 7 days of data
     private func performIncrementalSync() async throws {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
-        // Determine start date - either day after last sync, or yesterday if no recent sync
-        let startDate: Date
-        if let lastSync = lastSyncDate {
-            let lastSyncDay = calendar.startOfDay(for: lastSync)
-            // Re-sync the last synced day (in case it was partial) plus any new days
-            startDate = lastSyncDay
-        } else {
-            // Fallback: sync last 2 days
-            startDate = calendar.date(byAdding: .day, value: -1, to: today)!
-        }
+        // Always sync last 7 days to ensure we have fresh data
+        let startDate = calendar.date(byAdding: .day, value: -7, to: today)!
 
         syncProgress = 0.2
 
