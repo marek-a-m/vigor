@@ -24,5 +24,13 @@
     <false/>
     <key>WKCompanionAppBundleIdentifier</key>
     <string>cloud.buggygames.vigor</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>processing</string>
+    </array>
+    <key>WKBackgroundModes</key>
+    <array>
+        <string>workout-processing</string>
+    </array>
 </dict>
 </plist>

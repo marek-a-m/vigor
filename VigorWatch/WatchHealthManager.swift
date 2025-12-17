@@ -1,9 +1,12 @@
 import Foundation
 import HealthKit
+import WidgetKit
 
 @MainActor
 final class WatchHealthManager: ObservableObject {
     private let healthStore = HKHealthStore()
+    private var heartRateQuery: HKObserverQuery?
+    private var anchoredQuery: HKAnchoredObjectQuery?
 
     @Published var isAuthorized = false
     @Published var currentHeartRate: Double?
@@ -24,9 +27,73 @@ final class WatchHealthManager: ObservableObject {
             try await healthStore.requestAuthorization(toShare: [], read: readTypes)
             isAuthorized = true
             await fetchAllData()
+            startHeartRateMonitoring()
+            enableBackgroundDelivery()
         } catch {
             print("HealthKit authorization failed: \(error)")
         }
+    }
+
+    // MARK: - Real-time Heart Rate Monitoring
+
+    private func startHeartRateMonitoring() {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
+
+        // Stop existing query if any
+        if let existingQuery = anchoredQuery {
+            healthStore.stop(existingQuery)
+        }
+
+        // Create anchored query for real-time updates
+        let query = HKAnchoredObjectQuery(
+            type: heartRateType,
+            predicate: nil,
+            anchor: nil,
+            limit: HKObjectQueryNoLimit
+        ) { [weak self] _, samples, _, _, _ in
+            Task { @MainActor in
+                self?.processHeartRateSamples(samples)
+            }
+        }
+
+        // Handle updates
+        query.updateHandler = { [weak self] _, samples, _, _, _ in
+            Task { @MainActor in
+                self?.processHeartRateSamples(samples)
+            }
+        }
+
+        anchoredQuery = query
+        healthStore.execute(query)
+    }
+
+    private func processHeartRateSamples(_ samples: [HKSample]?) {
+        guard let samples = samples as? [HKQuantitySample],
+              let latestSample = samples.last else { return }
+
+        let heartRate = latestSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+        self.currentHeartRate = heartRate
+        self.updateSharedData()
+    }
+
+    private func enableBackgroundDelivery() {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
+
+        healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { success, error in
+            if let error = error {
+                print("Background delivery error: \(error)")
+            }
+        }
+    }
+
+    private func updateSharedData() {
+        let watchData = SharedWatchData(
+            heartRate: currentHeartRate.map { Int($0) },
+            steps: stepsToday,
+            date: Date()
+        )
+        SharedDataManager.shared.saveWatchData(watchData)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func fetchAllData() async {
@@ -41,13 +108,7 @@ final class WatchHealthManager: ObservableObject {
         stepsToday = await steps
         floorsClimbed = await floors
 
-        // Save to shared storage for widgets
-        let watchData = SharedWatchData(
-            heartRate: currentHeartRate.map { Int($0) },
-            steps: stepsToday,
-            date: Date()
-        )
-        SharedDataManager.shared.saveWatchData(watchData)
+        updateSharedData()
     }
 
     private func fetchLatestHeartRate() async -> Double? {
