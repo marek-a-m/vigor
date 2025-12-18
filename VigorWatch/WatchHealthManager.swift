@@ -5,8 +5,9 @@ import WidgetKit
 @MainActor
 final class WatchHealthManager: ObservableObject {
     private let healthStore = HKHealthStore()
-    private var heartRateQuery: HKObserverQuery?
-    private var anchoredQuery: HKAnchoredObjectQuery?
+    private var heartRateQuery: HKAnchoredObjectQuery?
+    private var stepsQuery: HKObserverQuery?
+    private var refreshTimer: Timer?
 
     @Published var isAuthorized = false
     @Published var currentHeartRate: Double?
@@ -28,10 +29,31 @@ final class WatchHealthManager: ObservableObject {
             isAuthorized = true
             await fetchAllData()
             startHeartRateMonitoring()
+            startStepsMonitoring()
             enableBackgroundDelivery()
+            startPeriodicRefresh()
         } catch {
             print("HealthKit authorization failed: \(error)")
         }
+    }
+
+    private func startPeriodicRefresh() {
+        // Refresh steps and floors every 30 seconds
+        refreshTimer?.invalidate()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.fetchStepsAndFloors()
+            }
+        }
+    }
+
+    private func fetchStepsAndFloors() async {
+        async let steps = fetchStepsToday()
+        async let floors = fetchFloorsToday()
+
+        stepsToday = await steps
+        floorsClimbed = await floors
+        updateSharedData()
     }
 
     // MARK: - Real-time Heart Rate Monitoring
@@ -40,7 +62,7 @@ final class WatchHealthManager: ObservableObject {
         guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
 
         // Stop existing query if any
-        if let existingQuery = anchoredQuery {
+        if let existingQuery = heartRateQuery {
             healthStore.stop(existingQuery)
         }
 
@@ -63,7 +85,28 @@ final class WatchHealthManager: ObservableObject {
             }
         }
 
-        anchoredQuery = query
+        heartRateQuery = query
+        healthStore.execute(query)
+    }
+
+    private func startStepsMonitoring() {
+        guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return }
+
+        // Stop existing query if any
+        if let existingQuery = stepsQuery {
+            healthStore.stop(existingQuery)
+        }
+
+        // Observer query to get notified of step changes
+        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
+            if error == nil {
+                Task { @MainActor in
+                    await self?.fetchStepsAndFloors()
+                }
+            }
+        }
+
+        stepsQuery = query
         healthStore.execute(query)
     }
 
@@ -77,11 +120,21 @@ final class WatchHealthManager: ObservableObject {
     }
 
     private func enableBackgroundDelivery() {
-        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
+        // Enable for heart rate
+        if let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+            healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { _, error in
+                if let error = error {
+                    print("HR background delivery error: \(error)")
+                }
+            }
+        }
 
-        healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { success, error in
-            if let error = error {
-                print("Background delivery error: \(error)")
+        // Enable for steps
+        if let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) {
+            healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { _, error in
+                if let error = error {
+                    print("Steps background delivery error: \(error)")
+                }
             }
         }
     }
