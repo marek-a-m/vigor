@@ -29,6 +29,34 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "92C9F34DCBB89EB4238E75F9"
+               BuildableName = "VigorWatch.app"
+               BlueprintName = "VigorWatch"
+               ReferencedContainer = "container:Vigor.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA333DB617AD50BE8032CC05"
+               BuildableName = "VigorWatchWidget.appex"
+               BlueprintName = "VigorWatchWidget"
+               ReferencedContainer = "container:Vigor.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "D65C1F236BF69C969E92F155"
                BuildableName = "VigorWidget.appex"
                BlueprintName = "VigorWidget"

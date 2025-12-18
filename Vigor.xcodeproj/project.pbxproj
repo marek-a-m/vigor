@@ -27,6 +27,7 @@
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		A51F7DAF42A8969773C89869 /* DailyMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */; };
 		BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */; };
+		D24A9E817F6D15B722B2254F /* VigorWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D071AB78CA90FDB60FA40900 /* VigorWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DC25980EDB175141DD37DACD /* VigorWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5189CBC2366D89421DD94045 /* VigorWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DDF11242046669334C6F1975 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 451BF40FEF365DE6797E8934 /* Assets.xcassets */; };
 		ED3ACA85AF0C33CF90F4A940 /* VigorWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45781F083901DEF1E2E3CC56 /* VigorWatchApp.swift */; };
@@ -48,6 +49,13 @@
 			remoteGlobalIDString = EA333DB617AD50BE8032CC05;
 			remoteInfo = VigorWatchWidget;
 		};
+		A2D8730F9B8430CCCD7F8416 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EB48D65BC1BEFC922314E34B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 92C9F34DCBB89EB4238E75F9;
+			remoteInfo = VigorWatch;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -60,6 +68,17 @@
 				67BFAD78D128AF5A35748C08 /* VigorWatchWidget.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBB664E0DBCEF538CA497E37 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D24A9E817F6D15B722B2254F /* VigorWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C0C3AC70CEA20774A8D46764 /* Embed Foundation Extensions */ = {
@@ -229,11 +248,13 @@
 				5E8029636BEE77F681CD8A8E /* Sources */,
 				79D20DD1A6AE62866E96171F /* Resources */,
 				C0C3AC70CEA20774A8D46764 /* Embed Foundation Extensions */,
+				BBB664E0DBCEF538CA497E37 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				23825290CD005748196F57D1 /* PBXTargetDependency */,
+				C519028F0452DB626E70077B /* PBXTargetDependency */,
 			);
 			name = Vigor;
 			packageProductDependencies = (
@@ -417,6 +438,11 @@
 			isa = PBXTargetDependency;
 			target = EA333DB617AD50BE8032CC05 /* VigorWatchWidget */;
 			targetProxy = 6C12C4F54D4DEEF1E0032DA7 /* PBXContainerItemProxy */;
+		};
+		C519028F0452DB626E70077B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 92C9F34DCBB89EB4238E75F9 /* VigorWatch */;
+			targetProxy = A2D8730F9B8430CCCD7F8416 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
