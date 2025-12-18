@@ -17,6 +17,7 @@
 		43F2ACCD89F482298F975B4C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		4AD69A93EC048C35E0D59640 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3AF43910784667516D43C6 /* DashboardView.swift */; };
 		53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A791C6EFD70BE5264E8464 /* VigorApp.swift */; };
+		62C5C037616D47FA958B1CA5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DA4F94F58C676AE69AE92781 /* Assets.xcassets */; };
 		67BFAD78D128AF5A35748C08 /* VigorWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6C4F0811FFF9527E72919612 /* VigorWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47D2B36DD0E81A227CE50331 /* VigorWidget.swift */; };
 		780308A813E1990AAE403743 /* LaunchImage.png in Resources */ = {isa = PBXBuildFile; fileRef = A8E1759E042946F4A95F3549 /* LaunchImage.png */; };
@@ -119,6 +120,7 @@
 		CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D071AB78CA90FDB60FA40900 /* VigorWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VigorWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9A7817A386857F6DC787C57 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DA4F94F58C676AE69AE92781 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DFE22FB40427E9696EEA5A3F /* VigorWatchWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorWatchWidget.swift; sourceTree = "<group>"; };
 		E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyMetrics.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 		BFCEB9764BE40075788A37C6 /* VigorWatch */ = {
 			isa = PBXGroup;
 			children = (
+				DA4F94F58C676AE69AE92781 /* Assets.xcassets */,
 				EE75E50639D6BDB966B18580 /* ContentView.swift */,
 				2DDB1B52500054EAA844895C /* Info.plist */,
 				578ED3AC80FC58C9048EEF9D /* VigorWatch.entitlements */,
@@ -268,6 +271,7 @@
 			buildConfigurationList = C7DF651220F3499CBFFF9D2A /* Build configuration list for PBXNativeTarget "VigorWatch" */;
 			buildPhases = (
 				9E8D150CB3947D9EF1D9708E /* Sources */,
+				325B29DB9871B789EEC662E6 /* Resources */,
 				6973FC41977292ABF2F40DE5 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -366,6 +370,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		325B29DB9871B789EEC662E6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62C5C037616D47FA958B1CA5 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		79D20DD1A6AE62866E96171F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
