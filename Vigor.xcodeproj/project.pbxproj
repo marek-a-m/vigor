@@ -11,11 +11,13 @@
 		097F70157FB7D3C3AAB38BE9 /* HealthMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F774F2E9162064DC616C7B5A /* HealthMetrics.swift */; };
 		0FAC56B11F20E57CC0896938 /* VigorCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC13F07B557563C2847627A /* VigorCalculator.swift */; };
 		13265F3518BE255F06DB9CA8 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
+		186B1D65FD08997801DC3A60 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		2243A8268FD8DA8D8CC18957 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE75E50639D6BDB966B18580 /* ContentView.swift */; };
 		2D313AA44D8C379C4A4962E9 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */; };
 		3D7220F45711CB6EFEC3141D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A7817A386857F6DC787C57 /* ContentView.swift */; };
 		43F2ACCD89F482298F975B4C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		4AD69A93EC048C35E0D59640 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3AF43910784667516D43C6 /* DashboardView.swift */; };
+		4CD0678C16E64BD40C29C336 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A791C6EFD70BE5264E8464 /* VigorApp.swift */; };
 		62C5C037616D47FA958B1CA5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DA4F94F58C676AE69AE92781 /* Assets.xcassets */; };
 		67BFAD78D128AF5A35748C08 /* VigorWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -23,6 +25,7 @@
 		780308A813E1990AAE403743 /* LaunchImage.png in Resources */ = {isa = PBXBuildFile; fileRef = A8E1759E042946F4A95F3549 /* LaunchImage.png */; };
 		7A69ABC98A434357A41737F7 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665E1DAF850D2BF03CDFE240 /* HistoryView.swift */; };
 		7F33560E3CCAE13581BBD419 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
+		86962AD102A977695E376C24 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		8A30121BBFFE1C89AE4F44DE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */; };
 		8B2AD1F447D2B8E55D2D93F6 /* WatchHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028914897544EF2865C20922 /* WatchHealthManager.swift */; };
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
@@ -31,6 +34,7 @@
 		D24A9E817F6D15B722B2254F /* VigorWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D071AB78CA90FDB60FA40900 /* VigorWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DC25980EDB175141DD37DACD /* VigorWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5189CBC2366D89421DD94045 /* VigorWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DDF11242046669334C6F1975 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 451BF40FEF365DE6797E8934 /* Assets.xcassets */; };
+		E71639030A8DD2C81A119E65 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		ED3ACA85AF0C33CF90F4A940 /* VigorWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45781F083901DEF1E2E3CC56 /* VigorWatchApp.swift */; };
 		FC6CA84D35AE8E4C0429D048 /* VigorScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C61C4B226FE1E6E684ED3D /* VigorScore.swift */; };
 /* End PBXBuildFile section */
@@ -111,6 +115,7 @@
 		665E1DAF850D2BF03CDFE240 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataManager.swift; sourceTree = "<group>"; };
 		7DFCDC8A44540A250CF82A4D /* Vigor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vigor.entitlements; sourceTree = "<group>"; };
+		81679042361670A6AB536234 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		A8E1759E042946F4A95F3549 /* LaunchImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchImage.png; sourceTree = "<group>"; };
 		AA3AF43910784667516D43C6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
@@ -145,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */,
+				81679042361670A6AB536234 /* WatchConnectivityManager.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -406,6 +412,7 @@
 				53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */,
 				0FAC56B11F20E57CC0896938 /* VigorCalculator.swift in Sources */,
 				FC6CA84D35AE8E4C0429D048 /* VigorScore.swift in Sources */,
+				86962AD102A977695E376C24 /* WatchConnectivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,6 +423,7 @@
 				2243A8268FD8DA8D8CC18957 /* ContentView.swift in Sources */,
 				7F33560E3CCAE13581BBD419 /* SharedDataManager.swift in Sources */,
 				ED3ACA85AF0C33CF90F4A940 /* VigorWatchApp.swift in Sources */,
+				E71639030A8DD2C81A119E65 /* WatchConnectivityManager.swift in Sources */,
 				8B2AD1F447D2B8E55D2D93F6 /* WatchHealthManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -426,6 +434,7 @@
 			files = (
 				43F2ACCD89F482298F975B4C /* SharedDataManager.swift in Sources */,
 				01BD3A979C9ADBBB7C75181C /* VigorWatchWidget.swift in Sources */,
+				4CD0678C16E64BD40C29C336 /* WatchConnectivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -435,6 +444,7 @@
 			files = (
 				13265F3518BE255F06DB9CA8 /* SharedDataManager.swift in Sources */,
 				6C4F0811FFF9527E72919612 /* VigorWidget.swift in Sources */,
+				186B1D65FD08997801DC3A60 /* WatchConnectivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

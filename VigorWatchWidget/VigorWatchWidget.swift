@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import WatchConnectivity
 
 // MARK: - Shared Data
 
@@ -32,11 +33,15 @@ struct WatchWidgetProvider: TimelineProvider {
     }
 
     private func loadData() -> WatchWidgetData {
-        let vigorData = SharedDataManager.shared.loadLatestScore()
+        // Try to get score from WatchConnectivity first, then fall back to local storage
+        let vigorScore = WatchConnectivityManager.shared.getCachedVigorScore()
+            ?? SharedDataManager.shared.loadLatestScore()?.score
+            ?? 0
+
         let watchData = SharedDataManager.shared.loadWatchData()
 
         return WatchWidgetData(
-            score: vigorData?.score ?? 0,
+            score: vigorScore,
             heartRate: watchData?.heartRate,
             steps: watchData?.steps,
             date: Date()

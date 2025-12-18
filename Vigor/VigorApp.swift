@@ -1,11 +1,15 @@
 import SwiftUI
 import SwiftData
+import WatchConnectivity
 
 @main
 struct VigorApp: App {
     let modelContainer: ModelContainer
 
     init() {
+        // Initialize WatchConnectivity
+        _ = WatchConnectivityManager.shared
+
         let schema = Schema([VigorScore.self, DailyMetrics.self])
 
         // Try CloudKit first, fall back to local storage if it fails

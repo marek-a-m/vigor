@@ -269,6 +269,15 @@ struct DashboardView: View {
             missingMetrics: score.missingMetrics
         )
         SharedDataManager.shared.saveLatestScore(sharedData)
+
+        // Send to Apple Watch
+        WatchConnectivityManager.shared.sendVigorScore(
+            score.score,
+            sleepScore: score.sleepScore,
+            hrvScore: score.hrvScore,
+            rhrScore: score.rhrScore,
+            tempScore: score.temperatureScore
+        )
     }
 }
 
