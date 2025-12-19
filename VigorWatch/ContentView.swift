@@ -84,6 +84,27 @@ struct ContentView: View {
                     unit: ""
                 )
             }
+
+            // Live monitoring toggle
+            Button {
+                if healthManager.isMonitoring {
+                    healthManager.stopMonitoring()
+                } else {
+                    healthManager.startMonitoring()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: healthManager.isMonitoring ? "heart.circle.fill" : "heart.circle")
+                        .foregroundColor(healthManager.isMonitoring ? .green : .gray)
+                    Text(healthManager.isMonitoring ? "Live" : "Start Live HR")
+                        .font(.system(size: 12))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(healthManager.isMonitoring ? Color.green.opacity(0.2) : Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
         }
     }
 

@@ -1,19 +1,23 @@
 import Foundation
 import HealthKit
 import WidgetKit
+import WorkoutKit
 
 @MainActor
-final class WatchHealthManager: ObservableObject {
+final class WatchHealthManager: NSObject, ObservableObject {
     private let healthStore = HKHealthStore()
     private var heartRateQuery: HKAnchoredObjectQuery?
     private var stepsQuery: HKObserverQuery?
     private var refreshTimer: Timer?
+    private var workoutSession: HKWorkoutSession?
+    private var workoutBuilder: HKLiveWorkoutBuilder?
 
     @Published var isAuthorized = false
     @Published var currentHeartRate: Double?
     @Published var stepsToday: Int?
     @Published var floorsClimbed: Int?
     @Published var isLoading = false
+    @Published var isMonitoring = false
 
     private let readTypes: Set<HKObjectType> = [
         HKObjectType.quantityType(forIdentifier: .heartRate)!,
@@ -246,4 +250,80 @@ final class WatchHealthManager: ObservableObject {
             healthStore.execute(query)
         }
     }
+
+    // MARK: - Workout Session for Continuous HR
+
+    func startMonitoring() {
+        guard !isMonitoring else { return }
+
+        let config = HKWorkoutConfiguration()
+        config.activityType = .other
+        config.locationType = .unknown
+
+        do {
+            workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: config)
+            workoutBuilder = workoutSession?.associatedWorkoutBuilder()
+
+            workoutSession?.delegate = self
+            workoutBuilder?.delegate = self
+            workoutBuilder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
+
+            let startDate = Date()
+            workoutSession?.startActivity(with: startDate)
+            workoutBuilder?.beginCollection(withStart: startDate) { _, _ in }
+
+            isMonitoring = true
+        } catch {
+            print("Failed to start workout session: \(error)")
+        }
+    }
+
+    func stopMonitoring() {
+        guard isMonitoring else { return }
+
+        workoutSession?.end()
+        workoutBuilder?.endCollection(withEnd: Date()) { _, _ in }
+        workoutBuilder?.finishWorkout { _, _ in }
+
+        workoutSession = nil
+        workoutBuilder = nil
+        isMonitoring = false
+    }
+}
+
+// MARK: - Workout Session Delegate
+
+extension WatchHealthManager: HKWorkoutSessionDelegate {
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+        Task { @MainActor in
+            if toState == .ended {
+                isMonitoring = false
+            }
+        }
+    }
+
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        print("Workout session failed: \(error)")
+    }
+}
+
+// MARK: - Workout Builder Delegate
+
+extension WatchHealthManager: HKLiveWorkoutBuilderDelegate {
+    nonisolated func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate),
+              collectedTypes.contains(heartRateType) else { return }
+
+        let statistics = workoutBuilder.statistics(for: heartRateType)
+        let heartRate = statistics?.mostRecentQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+
+        Task { @MainActor in
+            if let hr = heartRate {
+                self.currentHeartRate = hr
+                self.updateSharedData()
+            }
+        }
+    }
+
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
 }
