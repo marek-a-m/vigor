@@ -28,6 +28,7 @@
 		86962AD102A977695E376C24 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		8A30121BBFFE1C89AE4F44DE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */; };
 		8B2AD1F447D2B8E55D2D93F6 /* WatchHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028914897544EF2865C20922 /* WatchHealthManager.swift */; };
+		92FE0C0916E84FDDA781338F /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */; };
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		A51F7DAF42A8969773C89869 /* DailyMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */; };
 		BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */; };
@@ -133,6 +134,7 @@
 		F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VigorWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F774F2E9162064DC616C7B5A /* HealthMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMetrics.swift; sourceTree = "<group>"; };
 		FA53C3911513662BA20E595D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -207,6 +209,7 @@
 			children = (
 				DA4F94F58C676AE69AE92781 /* Assets.xcassets */,
 				EE75E50639D6BDB966B18580 /* ContentView.swift */,
+				FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */,
 				2DDB1B52500054EAA844895C /* Info.plist */,
 				578ED3AC80FC58C9048EEF9D /* VigorWatch.entitlements */,
 				45781F083901DEF1E2E3CC56 /* VigorWatchApp.swift */,
@@ -421,6 +424,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2243A8268FD8DA8D8CC18957 /* ContentView.swift in Sources */,
+				92FE0C0916E84FDDA781338F /* ExtensionDelegate.swift in Sources */,
 				7F33560E3CCAE13581BBD419 /* SharedDataManager.swift in Sources */,
 				ED3ACA85AF0C33CF90F4A940 /* VigorWatchApp.swift in Sources */,
 				E71639030A8DD2C81A119E65 /* WatchConnectivityManager.swift in Sources */,
