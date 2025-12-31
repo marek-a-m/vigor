@@ -57,13 +57,21 @@ final class HealthKitManager: ObservableObject {
         async let temp = fetchWristTemperature()
         async let hrvBase = fetchHRVBaseline()
         async let rhrBase = fetchRHRBaseline()
+        async let tempBase = fetchTemperatureBaseline()
 
         metrics.sleepHours = await sleep
         metrics.hrv = await hrv
         metrics.restingHeartRate = await rhr
-        metrics.wristTemperatureDeviation = await temp
         metrics.hrvBaseline = await hrvBase
         metrics.rhrBaseline = await rhrBase
+        metrics.temperatureBaseline = await tempBase
+
+        // Calculate temperature deviation from baseline
+        if let currentTemp = await temp, let baselineTemp = metrics.temperatureBaseline {
+            metrics.wristTemperatureDeviation = currentTemp - baselineTemp
+        } else {
+            metrics.wristTemperatureDeviation = nil
+        }
     }
 
     private func fetchSleepData() async -> Double? {
@@ -221,6 +229,44 @@ final class HealthKitManager: ObservableObject {
             unit: HKUnit.count().unitDivided(by: .minute()),
             days: 30
         )
+    }
+
+    private func fetchTemperatureBaseline() async -> Double? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startDate = calendar.date(byAdding: .day, value: -30, to: now)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: now,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                guard let samples = samples as? [HKQuantitySample],
+                      !samples.isEmpty,
+                      error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let total = samples.reduce(0.0) { $0 + $1.quantity.doubleValue(for: HKUnit.degreeCelsius()) }
+                let average = total / Double(samples.count)
+                continuation.resume(returning: average)
+            }
+
+            self.healthStore.execute(query)
+        }
     }
 
     private func fetchAverageOverDays(

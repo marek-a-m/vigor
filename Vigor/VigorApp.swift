@@ -10,6 +10,16 @@ struct VigorApp: App {
         // Initialize WatchConnectivity
         _ = WatchConnectivityManager.shared
 
+        // Start WHOOP Stand Service if enabled
+        if SettingsManager.shared.whoopIntegrationEnabled {
+            Task {
+                let authorized = await WhoopStandService.shared.requestAuthorization()
+                if authorized {
+                    WhoopStandService.shared.startMonitoring()
+                }
+            }
+        }
+
         let schema = Schema([VigorScore.self, DailyMetrics.self])
 
         // Try CloudKit first, fall back to local storage if it fails

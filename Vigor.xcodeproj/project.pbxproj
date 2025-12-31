@@ -12,10 +12,12 @@
 		0FAC56B11F20E57CC0896938 /* VigorCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC13F07B557563C2847627A /* VigorCalculator.swift */; };
 		13265F3518BE255F06DB9CA8 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		186B1D65FD08997801DC3A60 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
+		1FD1496E40200FDF71186DD5 /* WhoopStandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD94593FF29DE34BD94D736E /* WhoopStandService.swift */; };
 		2243A8268FD8DA8D8CC18957 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE75E50639D6BDB966B18580 /* ContentView.swift */; };
 		2D313AA44D8C379C4A4962E9 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */; };
 		3D7220F45711CB6EFEC3141D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A7817A386857F6DC787C57 /* ContentView.swift */; };
 		43F2ACCD89F482298F975B4C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
+		4903C8D53894EB113EE0C81A /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F186852EE465DD238C483A7E /* SettingsManager.swift */; };
 		4AD69A93EC048C35E0D59640 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3AF43910784667516D43C6 /* DashboardView.swift */; };
 		4CD0678C16E64BD40C29C336 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
 		53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A791C6EFD70BE5264E8464 /* VigorApp.swift */; };
@@ -30,6 +32,7 @@
 		8B2AD1F447D2B8E55D2D93F6 /* WatchHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028914897544EF2865C20922 /* WatchHealthManager.swift */; };
 		92FE0C0916E84FDDA781338F /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */; };
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
+		A2CE70035C70DF05AEF9A6E3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */; };
 		A51F7DAF42A8969773C89869 /* DailyMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */; };
 		BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */; };
 		D24A9E817F6D15B722B2254F /* VigorWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D071AB78CA90FDB60FA40900 /* VigorWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -121,6 +124,8 @@
 		A8E1759E042946F4A95F3549 /* LaunchImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchImage.png; sourceTree = "<group>"; };
 		AA3AF43910784667516D43C6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		AEC13F07B557563C2847627A /* VigorCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorCalculator.swift; sourceTree = "<group>"; };
+		B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BD94593FF29DE34BD94D736E /* WhoopStandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopStandService.swift; sourceTree = "<group>"; };
 		C1EBF7C4C7543693138F0BD8 /* VigorWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VigorWidget.entitlements; sourceTree = "<group>"; };
 		C9771590A82EABBF52ECF145 /* VigorWatchWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VigorWatchWidget.entitlements; sourceTree = "<group>"; };
 		CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -131,6 +136,7 @@
 		E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyMetrics.swift; sourceTree = "<group>"; };
 		EE75E50639D6BDB966B18580 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F186852EE465DD238C483A7E /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VigorWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F774F2E9162064DC616C7B5A /* HealthMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMetrics.swift; sourceTree = "<group>"; };
 		FA53C3911513662BA20E595D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -179,6 +185,7 @@
 			children = (
 				AA3AF43910784667516D43C6 /* DashboardView.swift */,
 				665E1DAF850D2BF03CDFE240 /* HistoryView.swift */,
+				B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -234,8 +241,10 @@
 			isa = PBXGroup;
 			children = (
 				9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */,
+				F186852EE465DD238C483A7E /* SettingsManager.swift */,
 				E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */,
 				AEC13F07B557563C2847627A /* VigorCalculator.swift */,
+				BD94593FF29DE34BD94D736E /* WhoopStandService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -410,12 +419,15 @@
 				BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */,
 				097F70157FB7D3C3AAB38BE9 /* HealthMetrics.swift in Sources */,
 				7A69ABC98A434357A41737F7 /* HistoryView.swift in Sources */,
+				4903C8D53894EB113EE0C81A /* SettingsManager.swift in Sources */,
+				A2CE70035C70DF05AEF9A6E3 /* SettingsView.swift in Sources */,
 				9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */,
 				2D313AA44D8C379C4A4962E9 /* SyncManager.swift in Sources */,
 				53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */,
 				0FAC56B11F20E57CC0896938 /* VigorCalculator.swift in Sources */,
 				FC6CA84D35AE8E4C0429D048 /* VigorScore.swift in Sources */,
 				86962AD102A977695E376C24 /* WatchConnectivityManager.swift in Sources */,
+				1FD1496E40200FDF71186DD5 /* WhoopStandService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

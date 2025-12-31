@@ -114,14 +114,18 @@ struct VigorCalculator {
 
         let absDeviation = abs(deviation)
 
-        if absDeviation <= 0.2 {
-            return 1.0
-        } else if absDeviation <= 0.5 {
-            return 0.8
+        // Wrist temperature deviations are typically small (-1 to +1°C)
+        // More lenient thresholds for better scoring
+        if absDeviation <= 0.5 {
+            return 1.0  // 100 → green
         } else if absDeviation <= 1.0 {
-            return 0.6
+            return 0.85 // 85 → green
+        } else if absDeviation <= 1.5 {
+            return 0.7  // 70 → green
+        } else if absDeviation <= 2.0 {
+            return 0.5  // 50 → yellow
         } else {
-            return max(0.2, 0.6 - (absDeviation - 1.0) * 0.2)
+            return max(0.3, 0.5 - (absDeviation - 2.0) * 0.1)
         }
     }
 }
