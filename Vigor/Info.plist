@@ -13,9 +13,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UIRequiredDeviceCapabilities</key>
@@ -29,9 +29,20 @@
     <key>UIRequiresFullScreen</key>
     <true/>
     <key>NSHealthShareUsageDescription</key>
-    <string>Vigor needs access to your health data to calculate your daily recovery score based on sleep, HRV, resting heart rate, and body temperature.</string>
+    <string>Vigor needs to read your health data to calculate your daily recovery score and sync activity metrics from WHOOP.</string>
     <key>NSHealthUpdateUsageDescription</key>
-    <string>Vigor may save your vigor scores to Apple Health.</string>
+    <string>Vigor writes activity data (calories, exercise minutes, stand hours) to fill your Activity Rings based on WHOOP data.</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>vigor</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>WHOOP OAuth Callback</string>
+        </dict>
+    </array>
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
     <key>ITSAppUsesNonExemptEncryption</key>
