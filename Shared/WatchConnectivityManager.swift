@@ -18,6 +18,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     func sendVigorScore(_ score: Double, sleepScore: Double?, hrvScore: Double?, rhrScore: Double?, tempScore: Double?) {
         guard WCSession.default.activationState == .activated else { return }
 
+        #if os(iOS)
+        // Only send if watch app is installed
+        guard WCSession.default.isWatchAppInstalled else { return }
+        #endif
+
         var context: [String: Any] = ["vigorScore": score, "timestamp": Date().timeIntervalSince1970]
         if let sleep = sleepScore { context["sleepScore"] = sleep }
         if let hrv = hrvScore { context["hrvScore"] = hrv }

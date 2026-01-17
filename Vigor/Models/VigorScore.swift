@@ -3,8 +3,9 @@ import SwiftData
 
 @Model
 final class VigorScore {
-    var date: Date
-    var score: Double
+    // CloudKit requires default values for non-optional properties
+    var date: Date = Date()
+    var score: Double = 0
     var sleepScore: Double?
     var hrvScore: Double?
     var rhrScore: Double?
@@ -15,7 +16,7 @@ final class VigorScore {
     var rhrValue: Double?
     var temperatureDeviation: Double?
 
-    var missingMetrics: [String]
+    var missingMetrics: [String] = []
 
     init(
         date: Date = Date(),

@@ -3,8 +3,9 @@ import SwiftData
 
 @Model
 final class DailyMetrics {
+    // CloudKit requires default values for non-optional properties
     /// Date normalized to start of day (midnight)
-    var date: Date
+    var date: Date = Date()
 
     /// Total sleep hours for the night ending on this date
     var sleepHours: Double?
@@ -19,7 +20,7 @@ final class DailyMetrics {
     var wristTemperature: Double?
 
     /// When this record was last updated from HealthKit
-    var lastUpdated: Date
+    var lastUpdated: Date = Date()
 
     init(
         date: Date,

@@ -52,7 +52,6 @@ final class HealthKitManager: ObservableObject {
         defer { isLoading = false }
 
         async let sleep = fetchSleepData()
-        async let hrv = fetchHRVData()
         async let rhr = fetchRestingHeartRate()
         async let temp = fetchWristTemperature()
         async let hrvBase = fetchHRVBaseline()
@@ -60,11 +59,13 @@ final class HealthKitManager: ObservableObject {
         async let tempBase = fetchTemperatureBaseline()
 
         metrics.sleepHours = await sleep
-        metrics.hrv = await hrv
         metrics.restingHeartRate = await rhr
         metrics.hrvBaseline = await hrvBase
         metrics.rhrBaseline = await rhrBase
         metrics.temperatureBaseline = await tempBase
+
+        // Fetch HRV with WHOOP fallback if no Apple Watch data
+        metrics.hrv = await fetchHRVWithWhoopFallback()
 
         // Calculate temperature deviation from baseline
         if let currentTemp = await temp, let baselineTemp = metrics.temperatureBaseline {
@@ -72,6 +73,12 @@ final class HealthKitManager: ObservableObject {
         } else {
             metrics.wristTemperatureDeviation = nil
         }
+    }
+
+    /// Fetch HRV with WHOOP fallback if no data from other sources
+    private func fetchHRVWithWhoopFallback() async -> Double? {
+        // Always use WhoopHRVService for consistent logging and fallback logic
+        return await WhoopHRVService.shared.fetchHRVWithWhoopFallback()
     }
 
     private func fetchSleepData() async -> Double? {
@@ -121,7 +128,7 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    private func fetchHRVData() async -> Double? {
+    func fetchHRVData() async -> Double? {
         await fetchLatestQuantity(
             typeIdentifier: .heartRateVariabilitySDNN,
             unit: HKUnit.secondUnit(with: .milli)
