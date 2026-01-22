@@ -24,7 +24,8 @@ final class HealthKitManager: ObservableObject {
         var types: Set<HKObjectType> = [
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
+            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
+            HKObjectType.quantityType(forIdentifier: .bodyTemperature)!  // For Polar skin temperature
         ]
         if let tempType = HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature) {
             types.insert(tempType)
@@ -143,8 +144,24 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func fetchWristTemperature() async -> Double? {
-        // Wrist temperature is recorded when you wake up, use wider window to ensure we catch it
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+        // Try Apple's wrist temperature first (from Apple Watch)
+        if let appleTemp = await fetchTemperatureOfType(.appleSleepingWristTemperature) {
+            print("HealthKitManager: Using Apple wrist temperature: \(appleTemp)°C")
+            return appleTemp
+        }
+
+        // Fall back to body temperature (from Polar or manual entry)
+        if let bodyTemp = await fetchTemperatureOfType(.bodyTemperature) {
+            print("HealthKitManager: Using body temperature (Polar): \(bodyTemp)°C")
+            return bodyTemp
+        }
+
+        print("HealthKitManager: No temperature data available")
+        return nil
+    }
+
+    private func fetchTemperatureOfType(_ typeIdentifier: HKQuantityTypeIdentifier) async -> Double? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
             return nil
         }
 
@@ -239,7 +256,17 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func fetchTemperatureBaseline() async -> Double? {
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+        // Try Apple's wrist temperature baseline first
+        if let appleBaseline = await fetchTemperatureBaselineOfType(.appleSleepingWristTemperature) {
+            return appleBaseline
+        }
+
+        // Fall back to body temperature baseline (from Polar)
+        return await fetchTemperatureBaselineOfType(.bodyTemperature)
+    }
+
+    private func fetchTemperatureBaselineOfType(_ typeIdentifier: HKQuantityTypeIdentifier) async -> Double? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
             return nil
         }
 
@@ -431,8 +458,25 @@ final class HealthKitManager: ObservableObject {
     }
 
     /// Fetch historical wrist temperature using sample query (statistics don't work well for this type)
+    /// Checks both Apple wrist temperature and body temperature (Polar)
     private func fetchHistoricalWristTemperature(from startDate: Date, to endDate: Date) async -> [Date: Double] {
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature) else {
+        // Fetch from both sources
+        async let appleTemp = fetchHistoricalTemperatureOfType(.appleSleepingWristTemperature, from: startDate, to: endDate)
+        async let bodyTemp = fetchHistoricalTemperatureOfType(.bodyTemperature, from: startDate, to: endDate)
+
+        let (apple, body) = await (appleTemp, bodyTemp)
+
+        // Merge results, preferring Apple Watch data when available
+        var merged = body
+        for (date, value) in apple {
+            merged[date] = value  // Apple Watch overwrites Polar for same day
+        }
+
+        return merged
+    }
+
+    private func fetchHistoricalTemperatureOfType(_ typeIdentifier: HKQuantityTypeIdentifier, from startDate: Date, to endDate: Date) async -> [Date: Double] {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
             return [:]
         }
 

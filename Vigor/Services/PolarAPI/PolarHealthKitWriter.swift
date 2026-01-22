@@ -27,7 +27,7 @@ final class PolarHealthKitWriter: ObservableObject {
     @Published var lastWriteResult: PolarHealthKitWriteResult?
 
     // Metadata key to identify Polar-written samples
-    static let polarSourceKey = "PolarLoopSync"
+    nonisolated static let polarSourceKey = "PolarLoopSync"
 
     private let writeTypes: Set<HKSampleType> = {
         var types: Set<HKSampleType> = [
@@ -194,6 +194,10 @@ final class PolarHealthKitWriter: ObservableObject {
             throw PolarHealthKitError.invalidType
         }
 
+        // Check authorization status
+        let authStatus = healthStore.authorizationStatus(for: tempType)
+        print("PolarHealthKitWriter: Body temperature authorization status: \(authStatus.rawValue) (0=notDetermined, 1=denied, 2=authorized)")
+
         // Check for existing Polar samples
         if await hasPolarSample(type: tempType, on: date) {
             print("PolarHealthKitWriter: Temperature already written for \(date)")
@@ -217,7 +221,9 @@ final class PolarHealthKitWriter: ObservableObject {
             ]
         )
 
+        print("PolarHealthKitWriter: Saving temperature sample \(celsius)°C for \(measurementTime)")
         try await healthStore.save(sample)
+        print("PolarHealthKitWriter: Temperature save completed successfully")
     }
 
     // MARK: - Duplicate Detection
@@ -239,11 +245,20 @@ final class PolarHealthKitWriter: ObservableObject {
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
-            ) { _, results, _ in
-                let hasPolarSample = results?.contains { sample in
+            ) { _, results, error in
+                if let error = error {
+                    print("PolarHealthKitWriter: Error checking for existing samples: \(error)")
+                    continuation.resume(returning: false)
+                    return
+                }
+
+                let totalSamples = results?.count ?? 0
+                let polarSamples = results?.filter { sample in
                     (sample.metadata?[Self.polarSourceKey] as? Bool) == true
-                } ?? false
-                continuation.resume(returning: hasPolarSample)
+                } ?? []
+
+                print("PolarHealthKitWriter: Found \(totalSamples) total samples, \(polarSamples.count) Polar samples for \(type.identifier) on \(startOfDay)")
+                continuation.resume(returning: !polarSamples.isEmpty)
             }
             healthStore.execute(query)
         }
