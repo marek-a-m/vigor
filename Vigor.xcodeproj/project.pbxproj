@@ -20,11 +20,13 @@
 		4903C8D53894EB113EE0C81A /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F186852EE465DD238C483A7E /* SettingsManager.swift */; };
 		4AD69A93EC048C35E0D59640 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3AF43910784667516D43C6 /* DashboardView.swift */; };
 		4CD0678C16E64BD40C29C336 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81679042361670A6AB536234 /* WatchConnectivityManager.swift */; };
+		4F6A865B10737BC1230A6C05 /* PolarPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 454F6D3C4FA0DDC95D678AD5 /* PolarPairingView.swift */; };
 		53B1ABAA54F43A4F8B54609A /* VigorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A791C6EFD70BE5264E8464 /* VigorApp.swift */; };
 		62C5C037616D47FA958B1CA5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DA4F94F58C676AE69AE92781 /* Assets.xcassets */; };
 		67BFAD78D128AF5A35748C08 /* VigorWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6C0F7FC423EEFFBD2866B094 /* README_WHOOP_SYNC.md in Resources */ = {isa = PBXBuildFile; fileRef = 3CF19E24352F870353891E2B /* README_WHOOP_SYNC.md */; };
 		6C4F0811FFF9527E72919612 /* VigorWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47D2B36DD0E81A227CE50331 /* VigorWidget.swift */; };
+		71A5B16DD4A6892C291215A9 /* PolarHealthKitWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D47CF820A00F60D4293FA3E8 /* PolarHealthKitWriter.swift */; };
 		780308A813E1990AAE403743 /* LaunchImage.png in Resources */ = {isa = PBXBuildFile; fileRef = A8E1759E042946F4A95F3549 /* LaunchImage.png */; };
 		7A69ABC98A434357A41737F7 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665E1DAF850D2BF03CDFE240 /* HistoryView.swift */; };
 		7F33560E3CCAE13581BBD419 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
@@ -32,15 +34,20 @@
 		86C4B1B2B46B65B3C133E369 /* WhoopActivityRingSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905B92ED951F56FB17FA7296 /* WhoopActivityRingSyncManager.swift */; };
 		8A30121BBFFE1C89AE4F44DE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */; };
 		8B2AD1F447D2B8E55D2D93F6 /* WatchHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028914897544EF2865C20922 /* WatchHealthManager.swift */; };
+		901306EC4E99BCBE857058F0 /* PolarBLEService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF183579D3C100C878FC1C51 /* PolarBLEService.swift */; };
 		92FE0C0916E84FDDA781338F /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */; };
+		9A1F0ACACEDD6CD11509F6E4 /* PolarDataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DFCB3647AB35F1F6DEBDE4 /* PolarDataFetcher.swift */; };
 		9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7004A58D6CFA45D20048FBD9 /* SharedDataManager.swift */; };
 		A2CE70035C70DF05AEF9A6E3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */; };
 		A51F7DAF42A8969773C89869 /* DailyMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */; };
+		A9168DD0654988EDDF2A7716 /* PolarBleSdk in Frameworks */ = {isa = PBXBuildFile; productRef = F1B196EA67E71A954E158DF5 /* PolarBleSdk */; };
 		BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */; };
+		C2640192D57D7068227507AE /* PolarSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA44B4723CC936582870BF53 /* PolarSyncManager.swift */; };
 		C859BAB20B4AC2D191EA3FD6 /* WhoopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BEF1DC397F21A99125FFEC /* WhoopModels.swift */; };
 		C8CADAB4BC0268B436802D40 /* WhoopAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D361C800AEEF73014EE94A73 /* WhoopAPIService.swift */; };
 		CA5E22052D38A0D675634A10 /* ActivityRingWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CC12A148D66FB2D7E4E0DA /* ActivityRingWriter.swift */; };
 		D24A9E817F6D15B722B2254F /* VigorWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D071AB78CA90FDB60FA40900 /* VigorWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D271073522F613036B8B823B /* PolarHRVCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A058663AF717752669049165 /* PolarHRVCalculator.swift */; };
 		D8F664F3A16D05946A370DCB /* GenerosityAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96AC97F21586B8D13D054B95 /* GenerosityAlgorithm.swift */; };
 		DC25980EDB175141DD37DACD /* VigorWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5189CBC2366D89421DD94045 /* VigorWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DDF11242046669334C6F1975 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 451BF40FEF365DE6797E8934 /* Assets.xcassets */; };
@@ -114,12 +121,14 @@
 		028914897544EF2865C20922 /* WatchHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHealthManager.swift; sourceTree = "<group>"; };
 		18C61C4B226FE1E6E684ED3D /* VigorScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorScore.swift; sourceTree = "<group>"; };
 		19BEF1DC397F21A99125FFEC /* WhoopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopModels.swift; sourceTree = "<group>"; };
+		19DFCB3647AB35F1F6DEBDE4 /* PolarDataFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarDataFetcher.swift; sourceTree = "<group>"; };
 		1C8774F4D37AC3BF612D6588 /* Vigor.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vigor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21A791C6EFD70BE5264E8464 /* VigorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorApp.swift; sourceTree = "<group>"; };
 		26D7D3DB495214E1A6E83189 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2DDB1B52500054EAA844895C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3CF19E24352F870353891E2B /* README_WHOOP_SYNC.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_WHOOP_SYNC.md; sourceTree = "<group>"; };
 		451BF40FEF365DE6797E8934 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		454F6D3C4FA0DDC95D678AD5 /* PolarPairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarPairingView.swift; sourceTree = "<group>"; };
 		45781F083901DEF1E2E3CC56 /* VigorWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorWatchApp.swift; sourceTree = "<group>"; };
 		47D2B36DD0E81A227CE50331 /* VigorWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorWidget.swift; sourceTree = "<group>"; };
 		516DC190ADEA2BA3A8661DC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -132,9 +141,11 @@
 		905B92ED951F56FB17FA7296 /* WhoopActivityRingSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopActivityRingSyncManager.swift; sourceTree = "<group>"; };
 		96AC97F21586B8D13D054B95 /* GenerosityAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerosityAlgorithm.swift; sourceTree = "<group>"; };
 		9B0EF30FCA15C4C65DFABE27 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		A058663AF717752669049165 /* PolarHRVCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarHRVCalculator.swift; sourceTree = "<group>"; };
 		A0784A55DF1869044207FD43 /* WhoopHRVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopHRVService.swift; sourceTree = "<group>"; };
 		A8E1759E042946F4A95F3549 /* LaunchImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchImage.png; sourceTree = "<group>"; };
 		AA3AF43910784667516D43C6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		AA44B4723CC936582870BF53 /* PolarSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarSyncManager.swift; sourceTree = "<group>"; };
 		AEC13F07B557563C2847627A /* VigorCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorCalculator.swift; sourceTree = "<group>"; };
 		B1CC12A148D66FB2D7E4E0DA /* ActivityRingWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRingWriter.swift; sourceTree = "<group>"; };
 		B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -144,18 +155,31 @@
 		CA68AC7F0E89C47B2DE3DEC1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D071AB78CA90FDB60FA40900 /* VigorWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VigorWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D361C800AEEF73014EE94A73 /* WhoopAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopAPIService.swift; sourceTree = "<group>"; };
+		D47CF820A00F60D4293FA3E8 /* PolarHealthKitWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarHealthKitWriter.swift; sourceTree = "<group>"; };
 		D9A7817A386857F6DC787C57 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		DA4F94F58C676AE69AE92781 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DFE22FB40427E9696EEA5A3F /* VigorWatchWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorWatchWidget.swift; sourceTree = "<group>"; };
 		E4C74DD8D68FFA450EC14C7E /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		E6BC7A661012053FDD2B5A38 /* DailyMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyMetrics.swift; sourceTree = "<group>"; };
 		EE75E50639D6BDB966B18580 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EF183579D3C100C878FC1C51 /* PolarBLEService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarBLEService.swift; sourceTree = "<group>"; };
 		F186852EE465DD238C483A7E /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		F53FDBABE58A449F53060909 /* VigorWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VigorWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F774F2E9162064DC616C7B5A /* HealthMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthMetrics.swift; sourceTree = "<group>"; };
 		FA53C3911513662BA20E595D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FEC033349C115B4DF7115227 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D2E1C10491CA3580A0CDAF7C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9168DD0654988EDDF2A7716 /* PolarBleSdk in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		195768ED5EA6C9FA6A812BCE /* VigorWidget */ = {
@@ -207,11 +231,24 @@
 			path = Vigor;
 			sourceTree = "<group>";
 		};
+		6F6DF1FA2D4C402F2D3A344B /* PolarAPI */ = {
+			isa = PBXGroup;
+			children = (
+				EF183579D3C100C878FC1C51 /* PolarBLEService.swift */,
+				19DFCB3647AB35F1F6DEBDE4 /* PolarDataFetcher.swift */,
+				D47CF820A00F60D4293FA3E8 /* PolarHealthKitWriter.swift */,
+				A058663AF717752669049165 /* PolarHRVCalculator.swift */,
+				AA44B4723CC936582870BF53 /* PolarSyncManager.swift */,
+			);
+			path = PolarAPI;
+			sourceTree = "<group>";
+		};
 		8800C4D9DBDE3CCCCBD13E17 /* Views */ = {
 			isa = PBXGroup;
 			children = (
 				AA3AF43910784667516D43C6 /* DashboardView.swift */,
 				665E1DAF850D2BF03CDFE240 /* HistoryView.swift */,
+				454F6D3C4FA0DDC95D678AD5 /* PolarPairingView.swift */,
 				B4EA7477BDFB11D16C3BC441 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -273,6 +310,7 @@
 				AEC13F07B557563C2847627A /* VigorCalculator.swift */,
 				A0784A55DF1869044207FD43 /* WhoopHRVService.swift */,
 				BD94593FF29DE34BD94D736E /* WhoopStandService.swift */,
+				6F6DF1FA2D4C402F2D3A344B /* PolarAPI */,
 				36CAB8600BD3617AEE3DF3DA /* WhoopAPI */,
 			);
 			path = Services;
@@ -297,6 +335,7 @@
 			buildPhases = (
 				5E8029636BEE77F681CD8A8E /* Sources */,
 				79D20DD1A6AE62866E96171F /* Resources */,
+				D2E1C10491CA3580A0CDAF7C /* Frameworks */,
 				C0C3AC70CEA20774A8D46764 /* Embed Foundation Extensions */,
 				BBB664E0DBCEF538CA497E37 /* Embed Watch Content */,
 			);
@@ -308,6 +347,7 @@
 			);
 			name = Vigor;
 			packageProductDependencies = (
+				F1B196EA67E71A954E158DF5 /* PolarBleSdk */,
 			);
 			productName = Vigor;
 			productReference = 1C8774F4D37AC3BF612D6588 /* Vigor.app */;
@@ -404,6 +444,9 @@
 			);
 			mainGroup = CB96556DA12716D1CFF7B955;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				03BBD6185F71B6AAA154D8A7 /* XCRemoteSwiftPackageReference "polar-ble-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -451,6 +494,12 @@
 				BDF3A55484A9BD0292AE7FC1 /* HealthKitManager.swift in Sources */,
 				097F70157FB7D3C3AAB38BE9 /* HealthMetrics.swift in Sources */,
 				7A69ABC98A434357A41737F7 /* HistoryView.swift in Sources */,
+				901306EC4E99BCBE857058F0 /* PolarBLEService.swift in Sources */,
+				9A1F0ACACEDD6CD11509F6E4 /* PolarDataFetcher.swift in Sources */,
+				D271073522F613036B8B823B /* PolarHRVCalculator.swift in Sources */,
+				71A5B16DD4A6892C291215A9 /* PolarHealthKitWriter.swift in Sources */,
+				4F6A865B10737BC1230A6C05 /* PolarPairingView.swift in Sources */,
+				C2640192D57D7068227507AE /* PolarSyncManager.swift in Sources */,
 				4903C8D53894EB113EE0C81A /* SettingsManager.swift in Sources */,
 				A2CE70035C70DF05AEF9A6E3 /* SettingsView.swift in Sources */,
 				9B91873BA892BA4A82CF4D04 /* SharedDataManager.swift in Sources */,
@@ -819,6 +868,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		03BBD6185F71B6AAA154D8A7 /* XCRemoteSwiftPackageReference "polar-ble-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/polarofficial/polar-ble-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F1B196EA67E71A954E158DF5 /* PolarBleSdk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 03BBD6185F71B6AAA154D8A7 /* XCRemoteSwiftPackageReference "polar-ble-sdk" */;
+			productName = PolarBleSdk;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = EB48D65BC1BEFC922314E34B /* Project object */;
 }

@@ -7,6 +7,11 @@ options:
   xcodeVersion: "15.0"
   createIntermediateGroups: true
 
+packages:
+  PolarBleSdk:
+    url: https://github.com/polarofficial/polar-ble-sdk.git
+    majorVersion: 6.0.0
+
 schemes:
   Vigor:
     build:
@@ -58,6 +63,7 @@ targets:
           - CloudKit
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)cloud.buggygames.vigor
     dependencies:
+      - package: PolarBleSdk
       - target: VigorWidget
         embed: true
       - target: VigorWatch
