@@ -6,6 +6,7 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \VigorScore.date, order: .reverse) private var allScores: [VigorScore]
     @State private var selectedTimeRange: TimeRange = .week
+    @State private var selectedMetric: HistoryMetricType = .score
 
     private var filteredScores: [VigorScore] {
         let calendar = Calendar.current
@@ -28,11 +29,6 @@ struct HistoryView: View {
         filteredScores.reversed()
     }
 
-    private var averageScore: Double {
-        guard !filteredScores.isEmpty else { return 0 }
-        return filteredScores.reduce(0) { $0 + $1.score } / Double(filteredScores.count)
-    }
-
     var body: some View {
         NavigationStack {
             List {
@@ -47,20 +43,26 @@ struct HistoryView: View {
                     .listRowInsets(EdgeInsets())
                 }
 
+                Section {
+                    MetricPicker(selectedMetric: $selectedMetric)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
+
                 if !filteredScores.isEmpty {
                     Section("Trend") {
-                        chartView
+                        MetricChartView(scores: chartData, metric: selectedMetric)
                             .frame(height: 200)
                             .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
                     }
 
                     Section("Statistics") {
-                        statisticsView
+                        MetricStatisticsView(scores: filteredScores, metric: selectedMetric)
                     }
 
                     Section("History") {
                         ForEach(filteredScores) { score in
-                            HistoryRow(score: score)
+                            MetricHistoryRow(score: score, metric: selectedMetric)
                         }
                         .onDelete(perform: deleteScores)
                     }
@@ -78,75 +80,342 @@ struct HistoryView: View {
         }
     }
 
-    private var chartView: some View {
-        Chart(chartData) { score in
-            LineMark(
-                x: .value("Date", score.date),
-                y: .value("Score", score.score)
-            )
-            .foregroundStyle(Color.blue.gradient)
-            .interpolationMethod(.catmullRom)
-
-            AreaMark(
-                x: .value("Date", score.date),
-                y: .value("Score", score.score)
-            )
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [.blue.opacity(0.3), .blue.opacity(0.05)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .interpolationMethod(.catmullRom)
-
-            PointMark(
-                x: .value("Date", score.date),
-                y: .value("Score", score.score)
-            )
-            .foregroundStyle(scoreColor(score.score))
-        }
-        .chartYScale(domain: 0...100)
-        .chartYAxis {
-            AxisMarks(position: .leading, values: [0, 33, 67, 100]) { value in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let intValue = value.as(Int.self) {
-                        Text("\(intValue)")
-                    }
-                }
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                AxisGridLine()
-                AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-            }
-        }
-    }
-
-    private var statisticsView: some View {
-        VStack(spacing: 12) {
-            HStack {
-                StatBox(title: "Average", value: String(format: "%.0f", averageScore), color: scoreColor(averageScore))
-                StatBox(title: "Highest", value: String(format: "%.0f", filteredScores.map(\.score).max() ?? 0), color: .green)
-                StatBox(title: "Lowest", value: String(format: "%.0f", filteredScores.map(\.score).min() ?? 0), color: .red)
-                StatBox(title: "Entries", value: "\(filteredScores.count)", color: .blue)
-            }
-        }
-    }
-
-    private func scoreColor(_ score: Double) -> Color {
-        switch score {
-        case 67...100: return .green
-        case 34..<67: return .yellow
-        default: return .red
-        }
-    }
-
     private func deleteScores(at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(filteredScores[index])
+        }
+    }
+}
+
+// MARK: - History Metric Type
+
+enum HistoryMetricType: String, CaseIterable {
+    case score = "Score"
+    case sleep = "Sleep"
+    case hrv = "HRV"
+    case rhr = "RHR"
+    case temperature = "Temp"
+
+    var icon: String {
+        switch self {
+        case .score: return "gauge.with.needle"
+        case .sleep: return "bed.double.fill"
+        case .hrv: return "waveform.path.ecg"
+        case .rhr: return "heart.fill"
+        case .temperature: return "thermometer.medium"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .score: return .blue
+        case .sleep: return .indigo
+        case .hrv: return .green
+        case .rhr: return .red
+        case .temperature: return .orange
+        }
+    }
+
+    var unit: String {
+        switch self {
+        case .score: return ""
+        case .sleep: return "hrs"
+        case .hrv: return "ms"
+        case .rhr: return "bpm"
+        case .temperature: return "°"
+        }
+    }
+
+    var chartDomain: ClosedRange<Double>? {
+        switch self {
+        case .score: return 0...100
+        case .sleep: return 0...12
+        case .hrv: return nil
+        case .rhr: return nil
+        case .temperature: return nil
+        }
+    }
+
+    func value(from score: VigorScore) -> Double? {
+        switch self {
+        case .score: return score.score
+        case .sleep: return score.sleepHours
+        case .hrv: return score.hrvValue
+        case .rhr: return score.rhrValue
+        case .temperature: return score.temperatureDeviation
+        }
+    }
+
+    func format(_ value: Double) -> String {
+        switch self {
+        case .score: return String(format: "%.0f", value)
+        case .sleep: return String(format: "%.1f", value)
+        case .hrv: return String(format: "%.0f", value)
+        case .rhr: return String(format: "%.0f", value)
+        case .temperature: return String(format: "%+.1f", value)
+        }
+    }
+}
+
+// MARK: - Metric Picker
+
+struct MetricPicker: View {
+    @Binding var selectedMetric: HistoryMetricType
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(HistoryMetricType.allCases, id: \.self) { metric in
+                    MetricButton(
+                        metric: metric,
+                        isSelected: selectedMetric == metric
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedMetric = metric
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+struct MetricButton: View {
+    let metric: HistoryMetricType
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: metric.icon)
+                    .font(.caption)
+                Text(metric.rawValue)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? metric.color : Color(.systemGray5))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Metric Chart View
+
+struct MetricChartView: View {
+    let scores: [VigorScore]
+    let metric: HistoryMetricType
+
+    private var validData: [(date: Date, value: Double)] {
+        scores.compactMap { score in
+            guard let value = metric.value(from: score) else { return nil }
+            return (date: score.date, value: value)
+        }
+    }
+
+    private var yDomain: ClosedRange<Double> {
+        if let domain = metric.chartDomain {
+            return domain
+        }
+        let values = validData.map(\.value)
+        guard let min = values.min(), let max = values.max() else {
+            return 0...100
+        }
+        let padding = (max - min) * 0.1
+        return (min - padding)...(max + padding)
+    }
+
+    var body: some View {
+        if validData.isEmpty {
+            ContentUnavailableView(
+                "No \(metric.rawValue) Data",
+                systemImage: metric.icon,
+                description: Text("No \(metric.rawValue.lowercased()) data available for this period.")
+            )
+        } else {
+            Chart(validData, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value(metric.rawValue, item.value)
+                )
+                .foregroundStyle(metric.color.gradient)
+                .interpolationMethod(.catmullRom)
+
+                AreaMark(
+                    x: .value("Date", item.date),
+                    y: .value(metric.rawValue, item.value)
+                )
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [metric.color.opacity(0.3), metric.color.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .interpolationMethod(.catmullRom)
+
+                PointMark(
+                    x: .value("Date", item.date),
+                    y: .value(metric.rawValue, item.value)
+                )
+                .foregroundStyle(metric.color)
+            }
+            .chartYScale(domain: yDomain)
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine()
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text(metric.format(doubleValue))
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                    AxisGridLine()
+                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Metric Statistics View
+
+struct MetricStatisticsView: View {
+    let scores: [VigorScore]
+    let metric: HistoryMetricType
+
+    private var values: [Double] {
+        scores.compactMap { metric.value(from: $0) }
+    }
+
+    private var average: Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private var highest: Double? {
+        values.max()
+    }
+
+    private var lowest: Double? {
+        values.min()
+    }
+
+    private var dataCount: Int {
+        values.count
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                if let avg = average {
+                    StatBox(
+                        title: "Average",
+                        value: metric.format(avg) + metric.unit,
+                        color: metric.color
+                    )
+                }
+                if let high = highest {
+                    StatBox(
+                        title: metric == .rhr ? "Lowest" : "Highest",
+                        value: metric.format(metric == .rhr ? lowest! : high) + metric.unit,
+                        color: .green
+                    )
+                }
+                if let low = lowest {
+                    StatBox(
+                        title: metric == .rhr ? "Highest" : "Lowest",
+                        value: metric.format(metric == .rhr ? highest! : low) + metric.unit,
+                        color: .red
+                    )
+                }
+                StatBox(
+                    title: "Entries",
+                    value: "\(dataCount)",
+                    color: .secondary
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Metric History Row
+
+struct MetricHistoryRow: View {
+    let score: VigorScore
+    let metric: HistoryMetricType
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(score.date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.subheadline)
+
+                if metric == .score && score.hasMissingData {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
+                        Text("Partial data")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if let value = metric.value(from: score) {
+                HStack(spacing: 2) {
+                    Text(metric.format(value))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(colorForValue(value))
+                    Text(metric.unit)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("--")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func colorForValue(_ value: Double) -> Color {
+        switch metric {
+        case .score:
+            switch value {
+            case 67...100: return .green
+            case 34..<67: return .yellow
+            default: return .red
+            }
+        case .sleep:
+            switch value {
+            case 7...9: return .green
+            case 6..<7, 9..<10: return .yellow
+            default: return .red
+            }
+        case .hrv:
+            return metric.color
+        case .rhr:
+            return metric.color
+        case .temperature:
+            let absValue = abs(value)
+            if absValue < 0.3 { return .green }
+            if absValue < 0.7 { return .yellow }
+            return .red
         }
     }
 }
@@ -170,44 +439,6 @@ struct StatBox: View {
     }
 }
 
-struct HistoryRow: View {
-    let score: VigorScore
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(score.date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.subheadline)
-
-                if score.hasMissingData {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                        Text("Partial data")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Spacer()
-
-            Text("\(Int(score.score))")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(scoreColor(score.score))
-        }
-    }
-
-    private func scoreColor(_ score: Double) -> Color {
-        switch score {
-        case 67...100: return .green
-        case 34..<67: return .yellow
-        default: return .red
-        }
-    }
-}
 
 enum TimeRange: String, CaseIterable {
     case week = "Week"
