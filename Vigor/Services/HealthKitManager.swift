@@ -130,17 +130,131 @@ final class HealthKitManager: ObservableObject {
     }
 
     func fetchHRVData() async -> Double? {
-        await fetchLatestQuantity(
+        // Prefer Polar data for HRV since it's measured during sleep (more accurate)
+        if let polarHRV = await fetchPolarHRV() {
+            print("HealthKitManager: Using Polar HRV: \(polarHRV) ms")
+            return polarHRV
+        }
+
+        // Fall back to most recent HRV from any source
+        let hrv = await fetchLatestQuantity(
             typeIdentifier: .heartRateVariabilitySDNN,
             unit: HKUnit.secondUnit(with: .milli)
         )
+        if let hrv = hrv {
+            print("HealthKitManager: Using generic HRV: \(hrv) ms")
+        }
+        return hrv
+    }
+
+    /// Fetch HRV specifically from Polar source (most accurate - measured during sleep)
+    private func fetchPolarHRV() async -> Double? {
+        guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfYesterday,
+            end: now,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: hrvType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+            ) { _, samples, error in
+                guard let samples = samples as? [HKQuantitySample], error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Find the most recent Polar sample
+                let polarSample = samples.first { sample in
+                    (sample.metadata?["PolarLoopSync"] as? Bool) == true
+                }
+
+                if let polarSample = polarSample {
+                    let value = polarSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli))
+                    continuation.resume(returning: value)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+
+            self.healthStore.execute(query)
+        }
     }
 
     private func fetchRestingHeartRate() async -> Double? {
-        await fetchLatestQuantity(
+        // Prefer Polar data for RHR since it's measured during sleep (more accurate)
+        if let polarRHR = await fetchPolarRHR() {
+            print("HealthKitManager: Using Polar RHR: \(polarRHR) bpm")
+            return polarRHR
+        }
+
+        // Fall back to most recent RHR from any source
+        let rhr = await fetchLatestQuantity(
             typeIdentifier: .restingHeartRate,
             unit: HKUnit.count().unitDivided(by: .minute())
         )
+        if let rhr = rhr {
+            print("HealthKitManager: Using generic RHR: \(rhr) bpm")
+        }
+        return rhr
+    }
+
+    /// Fetch RHR specifically from Polar source (most accurate - measured during sleep)
+    private func fetchPolarRHR() async -> Double? {
+        guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfYesterday,
+            end: now,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: rhrType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+            ) { _, samples, error in
+                guard let samples = samples as? [HKQuantitySample], error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Find the most recent Polar sample
+                let polarSample = samples.first { sample in
+                    (sample.metadata?["PolarLoopSync"] as? Bool) == true
+                }
+
+                if let polarSample = polarSample {
+                    let value = polarSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                    continuation.resume(returning: value)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+
+            self.healthStore.execute(query)
+        }
     }
 
     private func fetchWristTemperature() async -> Double? {

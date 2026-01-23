@@ -49,6 +49,13 @@
     <array>
         <string>remote-notification</string>
         <string>bluetooth-central</string>
+        <string>processing</string>
+        <string>fetch</string>
+    </array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>cloud.buggygames.vigor.polar.morning-sync</string>
+        <string>cloud.buggygames.vigor.polar.hourly-sync</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>

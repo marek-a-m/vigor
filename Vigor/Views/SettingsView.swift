@@ -68,10 +68,29 @@ struct SettingsView: View {
                     // Device status
                     if settingsManager.polarIntegrationEnabled {
                         polarDeviceRow
+
+                        // Background sync toggle
+                        Toggle(isOn: $settingsManager.polarBackgroundSyncEnabled) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Automatic Sync")
+                                    .font(.body)
+                                Text("Sync data automatically in background")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .disabled(settingsManager.polarDeviceId == nil)
                     }
                 } footer: {
                     if settingsManager.polarIntegrationEnabled {
-                        polarStatusFooter
+                        VStack(alignment: .leading, spacing: 4) {
+                            if settingsManager.polarBackgroundSyncEnabled {
+                                Label("Morning sync (6-9 AM) + hourly updates", systemImage: "clock.arrow.circlepath")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            polarStatusFooterContent
+                        }
                     }
                 }
 
@@ -279,19 +298,24 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var polarStatusFooter: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let result = polarSyncManager.lastSyncResult {
-                Label("Last sync: \(result.summary)", systemImage: "checkmark.circle.fill")
-                    .font(.caption)
+    private var polarStatusFooterContent: some View {
+        if let syncDate = polarSyncManager.lastSyncDate {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
+                Text("Last sync: \(syncDate, format: .relative(presentation: .named))")
+                if let result = polarSyncManager.lastSyncResult {
+                    Text("(\(result.summary))")
+                        .foregroundStyle(.secondary)
+                }
             }
+            .font(.caption)
+        }
 
-            if case .failed(let error) = polarSyncManager.syncStatus {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
+        if case .failed(let error) = polarSyncManager.syncStatus {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
         }
     }
 

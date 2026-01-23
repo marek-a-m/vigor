@@ -10,6 +10,9 @@ struct VigorApp: App {
         // Initialize WatchConnectivity
         _ = WatchConnectivityManager.shared
 
+        // Register Polar background sync tasks
+        PolarBackgroundSyncService.shared.registerBackgroundTasks()
+
         // Start WHOOP Stand Service if enabled
         if SettingsManager.shared.whoopIntegrationEnabled {
             Task {
@@ -19,6 +22,9 @@ struct VigorApp: App {
                 }
             }
         }
+
+        // Schedule Polar background sync tasks if enabled
+        PolarBackgroundSyncService.shared.scheduleInitialTasks()
 
         let schema = Schema([VigorScore.self, DailyMetrics.self])
 

@@ -125,10 +125,10 @@ final class PolarHealthKitWriter: ObservableObject {
             throw PolarHealthKitError.invalidType
         }
 
-        // Check for existing Polar samples to prevent duplicates
+        // Delete existing Polar sample for today (allows updating with new corrected value)
         if await hasPolarSample(type: hrvType, on: date) {
-            print("PolarHealthKitWriter: HRV already written for \(date)")
-            return
+            print("PolarHealthKitWriter: Deleting old HRV sample to update with new value")
+            try? await deletePolarSamples(type: hrvType, on: date)
         }
 
         let quantity = HKQuantity(unit: HKUnit.secondUnit(with: .milli), doubleValue: sdnn)
@@ -159,10 +159,10 @@ final class PolarHealthKitWriter: ObservableObject {
             throw PolarHealthKitError.invalidType
         }
 
-        // Check for existing Polar samples
+        // Delete existing Polar sample for today (allows updating with new corrected value)
         if await hasPolarSample(type: rhrType, on: date) {
-            print("PolarHealthKitWriter: RHR already written for \(date)")
-            return
+            print("PolarHealthKitWriter: Deleting old RHR sample to update with new value")
+            try? await deletePolarSamples(type: rhrType, on: date)
         }
 
         let quantity = HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: heartRate)
@@ -198,10 +198,10 @@ final class PolarHealthKitWriter: ObservableObject {
         let authStatus = healthStore.authorizationStatus(for: tempType)
         print("PolarHealthKitWriter: Body temperature authorization status: \(authStatus.rawValue) (0=notDetermined, 1=denied, 2=authorized)")
 
-        // Check for existing Polar samples
+        // Delete existing Polar sample for today (allows updating with new corrected value)
         if await hasPolarSample(type: tempType, on: date) {
-            print("PolarHealthKitWriter: Temperature already written for \(date)")
-            return
+            print("PolarHealthKitWriter: Deleting old temperature sample to update with new value")
+            try? await deletePolarSamples(type: tempType, on: date)
         }
 
         let quantity = HKQuantity(unit: .degreeCelsius(), doubleValue: celsius)
@@ -280,6 +280,21 @@ final class PolarHealthKitWriter: ObservableObject {
         for type in writeTypes {
             try await deletePolarSamples(type: type, predicate: predicate)
         }
+    }
+
+    /// Delete Polar samples for a specific type and date
+    private func deletePolarSamples(type: HKQuantityType, on date: Date) async throws {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfDay,
+            end: endOfDay,
+            options: .strictStartDate
+        )
+
+        try await deletePolarSamples(type: type, predicate: predicate)
     }
 
     private func deletePolarSamples(type: HKSampleType, predicate: NSPredicate) async throws {

@@ -59,6 +59,13 @@ struct ContentView: View {
 
             showSyncOverlay = false
         }
+        .onReceive(NotificationCenter.default.publisher(for: .polarSyncCompleted)) { _ in
+            // Refresh Vigor score when Polar sync completes with new data
+            Task {
+                print("ContentView: Polar sync completed, refreshing Vigor score...")
+                await syncManager?.performSync()
+            }
+        }
     }
 }
 

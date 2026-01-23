@@ -8,7 +8,63 @@ struct PolarFetchedData {
     let ppIntervals: [PolarPPInterval]
     let heartRateSamples: [PolarHRSample]
     let temperatureSamples: [PolarTemperatureSample]
+    let sleepData: [PolarSleepResult]
+    let nightlyRecharge: [PolarNightlyRechargeResult]
     let fetchDate: Date
+}
+
+/// Pre-computed nightly recovery data from Polar device
+struct PolarNightlyRechargeResult {
+    let date: DateComponents?
+    let hrvRMSSD: Double          // HRV in milliseconds (RMSSD)
+    let meanRRI: Double           // Mean RR interval in ms (60000/RRI = HR in bpm)
+    let baselineRMSSD: Double?    // Baseline HRV for comparison
+    let recoveryIndicator: Int?   // Recovery score (0-3+)
+    let ansStatus: Double?        // ANS status
+
+    /// Computed resting heart rate from mean RRI
+    var restingHeartRate: Double {
+        guard meanRRI > 0 else { return 0 }
+        return 60000.0 / meanRRI
+    }
+}
+
+struct PolarSleepResult {
+    let sleepStartTime: Date
+    let sleepEndTime: Date
+    let sleepDurationMinutes: Int
+    let sleepPhases: [PolarSleepPhase]
+    let sleepResultDate: DateComponents?
+
+    var sleepInterval: DateInterval {
+        DateInterval(start: sleepStartTime, end: sleepEndTime)
+    }
+}
+
+struct PolarSleepPhase {
+    let secondsFromSleepStart: UInt32
+    let state: PolarSleepState
+
+    func timestamp(relativeTo sleepStart: Date) -> Date {
+        sleepStart.addingTimeInterval(Double(secondsFromSleepStart))
+    }
+}
+
+enum PolarSleepState: String {
+    case unknown = "UNKNOWN"
+    case wake = "WAKE"
+    case rem = "REM"
+    case lightSleep = "NONREM12"  // Stages 1-2
+    case deepSleep = "NONREM3"   // Stage 3
+
+    var isAsleep: Bool {
+        switch self {
+        case .rem, .lightSleep, .deepSleep:
+            return true
+        case .wake, .unknown:
+            return false
+        }
+    }
 }
 
 struct PolarPPInterval {
@@ -120,10 +176,40 @@ final class PolarDataFetcher: ObservableObject {
             print("PolarDataFetcher: Failed to fetch temperature data - \(error)")
         }
 
+        // Fetch sleep data
+        var sleepData: [PolarSleepResult] = []
+        do {
+            print("PolarDataFetcher: Fetching sleep data...")
+            let rawSleepData = try await fetchSleepData(deviceId: deviceId, fromDate: fromDate, toDate: toDate)
+            print("PolarDataFetcher: Received \(rawSleepData.count) sleep record(s)")
+            sleepData = parseSleepData(rawSleepData)
+            for (idx, sleep) in sleepData.enumerated() {
+                print("PolarDataFetcher: Sleep \(idx + 1): \(sleep.sleepStartTime) - \(sleep.sleepEndTime) (\(sleep.sleepDurationMinutes) min)")
+            }
+        } catch {
+            print("PolarDataFetcher: Failed to fetch sleep data - \(error)")
+        }
+
+        // Fetch nightly recharge data (pre-computed HRV and recovery metrics)
+        var nightlyRecharge: [PolarNightlyRechargeResult] = []
+        do {
+            print("PolarDataFetcher: Fetching nightly recharge data...")
+            let rawNightlyData = try await fetchNightlyRecharge(deviceId: deviceId, fromDate: fromDate, toDate: toDate)
+            print("PolarDataFetcher: Received \(rawNightlyData.count) nightly recharge record(s)")
+            nightlyRecharge = parseNightlyRechargeData(rawNightlyData)
+            for (idx, nr) in nightlyRecharge.enumerated() {
+                print("PolarDataFetcher: Nightly \(idx + 1): HRV=\(String(format: "%.1f", nr.hrvRMSSD))ms, RHR=\(String(format: "%.1f", nr.restingHeartRate))bpm, Recovery=\(nr.recoveryIndicator ?? -1)")
+            }
+        } catch {
+            print("PolarDataFetcher: Failed to fetch nightly recharge data - \(error)")
+        }
+
         return PolarFetchedData(
             ppIntervals: ppIntervals,
             heartRateSamples: heartRateSamples,
             temperatureSamples: temperatureSamples,
+            sleepData: sleepData,
+            nightlyRecharge: nightlyRecharge,
             fetchDate: Date()
         )
     }
@@ -182,13 +268,21 @@ final class PolarDataFetcher: ObservableObject {
                 totalPpiValues += ppiValues.count
 
                 var currentTime = startTime
+                // Debug: log first sample's status info
+                if totalPpiValues == 0 && !statusList.isEmpty {
+                    let firstStatus = statusList[0]
+                    print("PolarDataFetcher: First PPI status - skinContact: \(String(describing: firstStatus.skinContact)), movement: \(String(describing: firstStatus.movement))")
+                }
+
                 for (index, ppi) in ppiValues.enumerated() {
                     let status = index < statusList.count ? statusList[index] : nil
 
                     // Check skin contact status - SKIN_CONTACT_DETECTED means contact is good
-                    let skinContact = status?.skinContact == .SKIN_CONTACT_DETECTED
+                    // If status is nil, assume contact is good (some devices don't report status)
+                    let skinContact = status?.skinContact == .SKIN_CONTACT_DETECTED || status == nil
 
-                    // Check movement status - NO_MOVING_DETECTED means no movement (good for HRV)
+                    // Check movement status - only block if movement is explicitly detected
+                    // If status is nil, assume no movement
                     let movementDetected = status?.movement == .MOVING_DETECTED
 
                     let interval = PolarPPInterval(
@@ -217,38 +311,37 @@ final class PolarDataFetcher: ObservableObject {
     }
 
     /// Parse a time-only string (e.g., '17:49:08.567') and combine with a base date
+    /// Note: Polar SDK returns times in local timezone, so we use local calendar throughout
     private func parseTimeAndCombineWithDate(timeString: String, baseDate: Date) -> Date? {
-        let calendar = Calendar.current
+        // Use local calendar for all operations - Polar SDK uses device local time
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone.current
 
-        // Try parsing with fractional seconds first: HH:mm:ss.SSS
-        let timeFormatterWithFraction = DateFormatter()
-        timeFormatterWithFraction.dateFormat = "HH:mm:ss.SSS"
-        timeFormatterWithFraction.timeZone = TimeZone(identifier: "UTC")
+        // Parse time components directly from the string (HH:mm:ss.SSS or HH:mm:ss)
+        let timeParts = timeString.split(separator: ":")
+        guard timeParts.count >= 3 else { return nil }
 
-        // Try without fractional seconds: HH:mm:ss
-        let timeFormatterSimple = DateFormatter()
-        timeFormatterSimple.dateFormat = "HH:mm:ss"
-        timeFormatterSimple.timeZone = TimeZone(identifier: "UTC")
+        guard let hour = Int(timeParts[0]) else { return nil }
 
-        var timeComponents: DateComponents?
+        guard let minute = Int(timeParts[1]) else { return nil }
 
-        // Reference date for parsing time-only strings
-        let referenceDate = Date(timeIntervalSince1970: 0)
+        // Handle seconds which may have fractional part
+        let secondsPart = String(timeParts[2])
+        let secondsComponents = secondsPart.split(separator: ".")
+        guard let second = Int(secondsComponents[0]) else { return nil }
 
-        if let parsedTime = timeFormatterWithFraction.date(from: timeString) {
-            timeComponents = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: parsedTime)
-        } else if let parsedTime = timeFormatterSimple.date(from: timeString) {
-            timeComponents = calendar.dateComponents([.hour, .minute, .second], from: parsedTime)
+        var nanosecond: Int = 0
+        if secondsComponents.count > 1, let ms = Int(secondsComponents[1]) {
+            // Convert milliseconds to nanoseconds
+            nanosecond = ms * 1_000_000
         }
 
-        guard let tc = timeComponents else { return nil }
-
-        // Combine base date with time components
-        var combined = calendar.dateComponents([.year, .month, .day], from: baseDate)
-        combined.hour = tc.hour
-        combined.minute = tc.minute
-        combined.second = tc.second
-        combined.nanosecond = tc.nanosecond
+        // Combine base date with time components using local timezone
+        var combined = calendar.dateComponents([.year, .month, .day, .timeZone], from: baseDate)
+        combined.hour = hour
+        combined.minute = minute
+        combined.second = second
+        combined.nanosecond = nanosecond
 
         return calendar.date(from: combined)
     }
@@ -343,6 +436,123 @@ final class PolarDataFetcher: ObservableObject {
         }
 
         return samples
+    }
+
+    // MARK: - Fetch Sleep Data
+
+    private func fetchSleepData(deviceId: String, fromDate: Date, toDate: Date) async throws -> [PolarSleepData.PolarSleepAnalysisResult] {
+        return try await withCheckedThrowingContinuation { continuation in
+            bleService.polarApi.getSleepData(identifier: deviceId, fromDate: fromDate, toDate: toDate)
+                .observe(on: MainScheduler.instance)
+                .subscribe(
+                    onSuccess: { data in
+                        continuation.resume(returning: data)
+                    },
+                    onFailure: { error in
+                        continuation.resume(throwing: PolarFetchError.fetchFailed(error.localizedDescription))
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
+    }
+
+    private func parseSleepData(_ dataArray: [PolarSleepData.PolarSleepAnalysisResult]) -> [PolarSleepResult] {
+        var results: [PolarSleepResult] = []
+
+        for sleepRecord in dataArray {
+            guard let startTime = sleepRecord.sleepStartTime,
+                  let endTime = sleepRecord.sleepEndTime else {
+                print("PolarDataFetcher: Skipping sleep record - missing start/end time")
+                continue
+            }
+
+            // Parse sleep phases
+            var phases: [PolarSleepPhase] = []
+            if let sleepPhases = sleepRecord.sleepWakePhases {
+                for phase in sleepPhases {
+                    let state: PolarSleepState
+                    switch phase.state {
+                    case .WAKE:
+                        state = .wake
+                    case .REM:
+                        state = .rem
+                    case .NONREM12:
+                        state = .lightSleep
+                    case .NONREM3:
+                        state = .deepSleep
+                    case .UNKNOWN, .none:
+                        state = .unknown
+                    }
+
+                    phases.append(PolarSleepPhase(
+                        secondsFromSleepStart: phase.secondsFromSleepStart,
+                        state: state
+                    ))
+                }
+            }
+
+            let durationMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
+
+            let result = PolarSleepResult(
+                sleepStartTime: startTime,
+                sleepEndTime: endTime,
+                sleepDurationMinutes: durationMinutes,
+                sleepPhases: phases,
+                sleepResultDate: sleepRecord.sleepResultDate
+            )
+            results.append(result)
+        }
+
+        // Sort by start time (most recent first)
+        return results.sorted { $0.sleepStartTime > $1.sleepStartTime }
+    }
+
+    // MARK: - Fetch Nightly Recharge Data
+
+    private func fetchNightlyRecharge(deviceId: String, fromDate: Date, toDate: Date) async throws -> [PolarNightlyRechargeData] {
+        return try await withCheckedThrowingContinuation { continuation in
+            bleService.polarApi.getNightlyRecharge(identifier: deviceId, fromDate: fromDate, toDate: toDate)
+                .observe(on: MainScheduler.instance)
+                .subscribe(
+                    onSuccess: { data in
+                        continuation.resume(returning: data)
+                    },
+                    onFailure: { error in
+                        continuation.resume(throwing: PolarFetchError.fetchFailed(error.localizedDescription))
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
+    }
+
+    private func parseNightlyRechargeData(_ dataArray: [PolarNightlyRechargeData]) -> [PolarNightlyRechargeResult] {
+        var results: [PolarNightlyRechargeResult] = []
+
+        for data in dataArray {
+            // Skip if no RMSSD value (required for HRV)
+            guard let rmssd = data.meanNightlyRecoveryRMSSD, rmssd > 0 else {
+                print("PolarDataFetcher: Skipping nightly recharge - no RMSSD value")
+                continue
+            }
+
+            guard let rri = data.meanNightlyRecoveryRRI, rri > 0 else {
+                print("PolarDataFetcher: Skipping nightly recharge - no RRI value")
+                continue
+            }
+
+            let result = PolarNightlyRechargeResult(
+                date: data.sleepResultDate,
+                hrvRMSSD: Double(rmssd),
+                meanRRI: Double(rri),
+                baselineRMSSD: data.meanBaselineRMSSD.map { Double($0) },
+                recoveryIndicator: data.recoveryIndicator.map { Int($0) },
+                ansStatus: data.ansStatus.map { Double($0) }
+            )
+            results.append(result)
+        }
+
+        // Sort by date (most recent first)
+        return results
     }
 
     // MARK: - Helper

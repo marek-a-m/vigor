@@ -62,7 +62,8 @@ final class PolarBLEService: ObservableObject {
                 .feature_hr,
                 .feature_polar_offline_recording,
                 .feature_polar_device_time_setup,
-                .feature_battery_info
+                .feature_battery_info,
+                .feature_polar_activity_data  // Includes sleep data, activity, and 24/7 samples
             ]
         )
 
@@ -239,5 +240,46 @@ extension PolarBLEService: PolarBleApiLogger {
 extension PolarBLEService {
     var polarApi: PolarBleApi {
         return api
+    }
+}
+
+// MARK: - Background Reconnection
+
+extension PolarBLEService {
+    /// Attempt to reconnect to a known device with timeout (for background sync)
+    /// - Parameters:
+    ///   - deviceId: The device ID to connect to
+    ///   - timeout: Maximum seconds to wait for connection
+    /// - Returns: true if connected successfully, false otherwise
+    func backgroundReconnect(deviceId: String, timeout: TimeInterval) async -> Bool {
+        // Already connected
+        if case .connected(let connectedId) = connectionState, connectedId == deviceId {
+            return true
+        }
+
+        // Start connection attempt
+        connect(to: deviceId)
+
+        // Wait for connection with timeout
+        let checkInterval: UInt64 = 500_000_000 // 0.5 seconds
+        let maxChecks = Int(timeout * 2)
+
+        for _ in 0..<maxChecks {
+            if connectionState.isConnected {
+                print("PolarBLE: Background reconnect successful")
+                return true
+            }
+
+            // Check for error state
+            if case .error = connectionState {
+                print("PolarBLE: Background reconnect failed - error state")
+                return false
+            }
+
+            try? await Task.sleep(nanoseconds: checkInterval)
+        }
+
+        print("PolarBLE: Background reconnect timed out after \(timeout)s")
+        return false
     }
 }
