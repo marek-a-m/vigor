@@ -176,8 +176,18 @@ final class PolarDataFetcher: ObservableObject {
             print("PolarDataFetcher: Failed to fetch temperature data - \(error)")
         }
 
-        // Fetch sleep data
+        // Check sleep recording state before fetching sleep data
         var sleepData: [PolarSleepResult] = []
+        var sleepRecordingActive = false
+        do {
+            print("PolarDataFetcher: Checking sleep recording state...")
+            sleepRecordingActive = try await getSleepRecordingState(deviceId: deviceId)
+            print("PolarDataFetcher: Sleep recording active: \(sleepRecordingActive)")
+        } catch {
+            print("PolarDataFetcher: Failed to check sleep recording state - \(error)")
+        }
+
+        // Fetch sleep data (even if recording is active, there might be previous nights' data)
         do {
             print("PolarDataFetcher: Fetching sleep data...")
             let rawSleepData = try await fetchSleepData(deviceId: deviceId, fromDate: fromDate, toDate: toDate)
@@ -185,6 +195,11 @@ final class PolarDataFetcher: ObservableObject {
             sleepData = parseSleepData(rawSleepData)
             for (idx, sleep) in sleepData.enumerated() {
                 print("PolarDataFetcher: Sleep \(idx + 1): \(sleep.sleepStartTime) - \(sleep.sleepEndTime) (\(sleep.sleepDurationMinutes) min)")
+            }
+
+            if sleepData.isEmpty && sleepRecordingActive {
+                print("PolarDataFetcher: ⚠️ No sleep data available - device is still recording sleep")
+                print("PolarDataFetcher: Sleep data becomes available ~90 minutes after waking")
             }
         } catch {
             print("PolarDataFetcher: Failed to fetch sleep data - \(error)")
@@ -436,6 +451,24 @@ final class PolarDataFetcher: ObservableObject {
         }
 
         return samples
+    }
+
+    // MARK: - Sleep Recording State
+
+    private func getSleepRecordingState(deviceId: String) async throws -> Bool {
+        return try await withCheckedThrowingContinuation { continuation in
+            bleService.polarApi.getSleepRecordingState(identifier: deviceId)
+                .observe(on: MainScheduler.instance)
+                .subscribe(
+                    onSuccess: { isRecording in
+                        continuation.resume(returning: isRecording)
+                    },
+                    onFailure: { error in
+                        continuation.resume(throwing: PolarFetchError.fetchFailed(error.localizedDescription))
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
     }
 
     // MARK: - Fetch Sleep Data

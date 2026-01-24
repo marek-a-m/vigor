@@ -113,6 +113,11 @@ final class PolarSyncManager: ObservableObject {
                 )
                 .disposed(by: disposeBag)
         }
+
+        // Wait for device to flush 24/7 data to files after sync initialization
+        // The SDK docs say data is flushed when sync starts, but device needs time to process
+        print("PolarSyncManager: Waiting for device to flush data...")
+        try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
     }
 
     /// End sync session

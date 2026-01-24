@@ -3,7 +3,9 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var healthKitManager = HealthKitManager()
+    @ObservedObject private var polarBLEService = PolarBLEService.shared
     @State private var syncManager: SyncManager?
     @State private var selectedTab = 0
     @State private var showSyncOverlay = false
@@ -64,6 +66,27 @@ struct ContentView: View {
             Task {
                 print("ContentView: Polar sync completed, refreshing Vigor score...")
                 await syncManager?.performSync()
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                // Auto-reconnect to Polar when app becomes active
+                if SettingsManager.shared.polarIntegrationEnabled {
+                    polarBLEService.autoReconnect()
+
+                    // Check if we should sync (never synced or last sync > 30 min ago)
+                    let lastSync = SyncStateManager.shared.lastSuccessfulSyncTime
+                    let shouldSync = lastSync == nil || Date().timeIntervalSince(lastSync!) > 30 * 60
+
+                    if shouldSync {
+                        Task {
+                            // Wait a moment for BLE connection to establish
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            print("ContentView: Auto-syncing Polar data on foreground")
+                            await PolarSyncManager.shared.performSync()
+                        }
+                    }
+                }
             }
         }
     }
