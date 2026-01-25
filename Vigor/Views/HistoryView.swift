@@ -51,7 +51,7 @@ struct HistoryView: View {
 
                 if !filteredScores.isEmpty {
                     Section("Trend") {
-                        MetricChartView(scores: chartData, metric: selectedMetric)
+                        MetricChartView(scores: chartData, metric: selectedMetric, timeRange: selectedTimeRange)
                             .frame(height: 200)
                             .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
                     }
@@ -211,12 +211,31 @@ struct MetricButton: View {
 struct MetricChartView: View {
     let scores: [VigorScore]
     let metric: HistoryMetricType
+    let timeRange: TimeRange
 
     private var validData: [(date: Date, value: Double)] {
         scores.compactMap { score in
             guard let value = metric.value(from: score) else { return nil }
             return (date: score.date, value: value)
         }
+    }
+
+    private var xDomain: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let now = Date()
+        let endDate = calendar.startOfDay(for: now)
+
+        let startDate: Date
+        switch timeRange {
+        case .week:
+            startDate = calendar.date(byAdding: .day, value: -6, to: endDate)!
+        case .month:
+            startDate = calendar.date(byAdding: .month, value: -1, to: endDate)!
+        case .threeMonths:
+            startDate = calendar.date(byAdding: .month, value: -3, to: endDate)!
+        }
+
+        return startDate...now
     }
 
     private var yDomain: ClosedRange<Double> {
@@ -266,6 +285,7 @@ struct MetricChartView: View {
                 )
                 .foregroundStyle(metric.color)
             }
+            .chartXScale(domain: xDomain)
             .chartYScale(domain: yDomain)
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
