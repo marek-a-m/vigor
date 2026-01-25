@@ -8,11 +8,12 @@ struct PolarHealthKitWriteResult {
     let rhrWritten: Bool
     let temperatureWritten: Bool
     let sleepWritten: Bool
+    let stepsWritten: Bool
     let writeDate: Date
     let errors: [String]
 
     var success: Bool {
-        return errors.isEmpty && (hrvWritten || rhrWritten || temperatureWritten || sleepWritten)
+        return errors.isEmpty && (hrvWritten || rhrWritten || temperatureWritten || sleepWritten || stepsWritten)
     }
 }
 
@@ -35,6 +36,7 @@ final class PolarHealthKitWriter: ObservableObject {
             HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
             HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
             HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
         return types
@@ -45,6 +47,7 @@ final class PolarHealthKitWriter: ObservableObject {
             HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
             HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
             HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
         return types
@@ -70,6 +73,7 @@ final class PolarHealthKitWriter: ObservableObject {
         rhr: PolarRHRResult?,
         temperature: Double?,
         sleep: PolarSleepResult?,
+        steps: [PolarStepsSample] = [],
         measurementDate: Date
     ) async -> PolarHealthKitWriteResult {
         var errors: [String] = []
@@ -77,6 +81,7 @@ final class PolarHealthKitWriter: ObservableObject {
         var rhrWritten = false
         var temperatureWritten = false
         var sleepWritten = false
+        var stepsWritten = false
 
         // Write HRV
         if let hrv = hrv, hrv.isReliable {
@@ -122,11 +127,28 @@ final class PolarHealthKitWriter: ObservableObject {
             }
         }
 
+        // Write Steps
+        print("PolarHealthKitWriter: Steps to write: \(steps.count) samples")
+        if !steps.isEmpty {
+            do {
+                try await writeSteps(steps)
+                stepsWritten = true
+                let totalSteps = steps.reduce(0) { $0 + $1.steps }
+                print("PolarHealthKitWriter: Successfully wrote \(totalSteps) steps across \(steps.count) days to HealthKit")
+            } catch {
+                print("PolarHealthKitWriter: Failed to write steps - \(error)")
+                errors.append("Steps: \(error.localizedDescription)")
+            }
+        } else {
+            print("PolarHealthKitWriter: No steps samples to write")
+        }
+
         let result = PolarHealthKitWriteResult(
             hrvWritten: hrvWritten,
             rhrWritten: rhrWritten,
             temperatureWritten: temperatureWritten,
             sleepWritten: sleepWritten,
+            stepsWritten: stepsWritten,
             writeDate: Date(),
             errors: errors
         )
@@ -241,6 +263,59 @@ final class PolarHealthKitWriter: ObservableObject {
         print("PolarHealthKitWriter: Saving temperature sample \(celsius)°C for \(measurementTime)")
         try await healthStore.save(sample)
         print("PolarHealthKitWriter: Temperature save completed successfully")
+    }
+
+    // MARK: - Write Steps
+
+    func writeSteps(_ stepsSamples: [PolarStepsSample]) async throws {
+        guard let stepsType = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
+            throw PolarHealthKitError.invalidType
+        }
+
+        var samplesToSave: [HKQuantitySample] = []
+        let calendar = Calendar.current
+
+        for stepSample in stepsSamples {
+            // Skip days with 0 steps
+            guard stepSample.steps > 0 else { continue }
+
+            let startOfDay = calendar.startOfDay(for: stepSample.date)
+
+            // Delete existing Polar steps for this day
+            if await hasPolarSample(type: stepsType, on: stepSample.date) {
+                print("PolarHealthKitWriter: Deleting old steps sample for \(startOfDay)")
+                try? await deletePolarSamples(type: stepsType, on: stepSample.date)
+            }
+
+            // Distribute steps across waking hours (6 AM - 10 PM) for more realistic data
+            let wakingStart = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: stepSample.date)!
+            let wakingEnd = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: stepSample.date)!
+
+            // Create a single sample spanning the waking hours
+            let quantity = HKQuantity(unit: .count(), doubleValue: Double(stepSample.steps))
+            let sample = HKQuantitySample(
+                type: stepsType,
+                quantity: quantity,
+                start: wakingStart,
+                end: wakingEnd,
+                metadata: [
+                    HKMetadataKeyWasUserEntered: false,
+                    Self.polarSourceKey: true
+                ]
+            )
+            samplesToSave.append(sample)
+            print("PolarHealthKitWriter: Preparing steps sample - \(stepSample.steps) steps for \(startOfDay)")
+        }
+
+        guard !samplesToSave.isEmpty else {
+            print("PolarHealthKitWriter: No steps to write")
+            return
+        }
+
+        print("PolarHealthKitWriter: Writing \(samplesToSave.count) steps samples to HealthKit...")
+
+        try await healthStore.save(samplesToSave)
+        print("PolarHealthKitWriter: Saved \(samplesToSave.count) steps samples")
     }
 
     // MARK: - Write Sleep

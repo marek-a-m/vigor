@@ -10,7 +10,13 @@ struct PolarFetchedData {
     let temperatureSamples: [PolarTemperatureSample]
     let sleepData: [PolarSleepResult]
     let nightlyRecharge: [PolarNightlyRechargeResult]
+    let stepsSamples: [PolarStepsSample]
     let fetchDate: Date
+}
+
+struct PolarStepsSample {
+    let date: Date
+    let steps: Int
 }
 
 /// Pre-computed nightly recovery data from Polar device
@@ -219,12 +225,27 @@ final class PolarDataFetcher: ObservableObject {
             print("PolarDataFetcher: Failed to fetch nightly recharge data - \(error)")
         }
 
+        // Fetch steps data
+        var stepsSamples: [PolarStepsSample] = []
+        do {
+            print("PolarDataFetcher: Fetching steps data...")
+            let rawStepsData = try await fetchSteps(deviceId: deviceId, fromDate: fromDate, toDate: toDate)
+            print("PolarDataFetcher: Received \(rawStepsData.count) steps record(s)")
+            stepsSamples = parseStepsData(rawStepsData)
+            for sample in stepsSamples {
+                print("PolarDataFetcher: Steps on \(sample.date): \(sample.steps)")
+            }
+        } catch {
+            print("PolarDataFetcher: Failed to fetch steps data - \(error)")
+        }
+
         return PolarFetchedData(
             ppIntervals: ppIntervals,
             heartRateSamples: heartRateSamples,
             temperatureSamples: temperatureSamples,
             sleepData: sleepData,
             nightlyRecharge: nightlyRecharge,
+            stepsSamples: stepsSamples,
             fetchDate: Date()
         )
     }
@@ -586,6 +607,39 @@ final class PolarDataFetcher: ObservableObject {
 
         // Sort by date (most recent first)
         return results
+    }
+
+    // MARK: - Fetch Steps Data
+
+    private func fetchSteps(deviceId: String, fromDate: Date, toDate: Date) async throws -> [PolarStepsData] {
+        return try await withCheckedThrowingContinuation { continuation in
+            bleService.polarApi.getSteps(identifier: deviceId, fromDate: fromDate, toDate: toDate)
+                .observe(on: MainScheduler.instance)
+                .subscribe(
+                    onSuccess: { data in
+                        continuation.resume(returning: data)
+                    },
+                    onFailure: { error in
+                        continuation.resume(throwing: PolarFetchError.fetchFailed(error.localizedDescription))
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
+    }
+
+    private func parseStepsData(_ dataArray: [PolarStepsData]) -> [PolarStepsSample] {
+        var samples: [PolarStepsSample] = []
+
+        for data in dataArray {
+            let sample = PolarStepsSample(
+                date: data.date,
+                steps: Int(data.steps)
+            )
+            samples.append(sample)
+        }
+
+        // Sort by date (most recent first)
+        return samples.sorted { $0.date > $1.date }
     }
 
     // MARK: - Helper

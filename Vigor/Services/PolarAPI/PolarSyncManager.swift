@@ -235,6 +235,7 @@ final class PolarSyncManager: ObservableObject {
                 rhr: rhr,
                 temperature: bodyTemperature,
                 sleep: sleepData.first,
+                steps: fetchedData.stepsSamples,
                 measurementDate: measurementDate
             )
 
@@ -260,6 +261,8 @@ final class PolarSyncManager: ObservableObject {
             if let tempResult = temperatureResult {
                 print("  - Skin temp: \(String(format: "%.1f", tempResult.skinTemperature))°C -> Body temp: \(String(format: "%.1f", tempResult.estimatedBodyTemperature))°C (valid: \(tempResult.isValid))")
             }
+            let totalSteps = fetchedData.stepsSamples.reduce(0) { $0 + $1.steps }
+            print("  - Steps: \(totalSteps) across \(fetchedData.stepsSamples.count) days")
             print("  - HealthKit write success: \(writeResult.success)")
 
             if !writeResult.errors.isEmpty {
@@ -398,6 +401,7 @@ final class PolarSyncManager: ObservableObject {
                     rhr: rhr,
                     temperature: bodyTemperature,
                     sleep: sleepData.first,
+                    steps: fetchedData.stepsSamples,
                     measurementDate: measurementDate
                 )
 

@@ -104,8 +104,6 @@ final class ActivityRingWriter: ObservableObject {
         }
 
         let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
         // Distribute calories across waking hours (6 AM - 10 PM) for more realistic data
         let wakingStart = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: date)!
