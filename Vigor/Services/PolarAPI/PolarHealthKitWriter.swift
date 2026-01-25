@@ -7,11 +7,12 @@ struct PolarHealthKitWriteResult {
     let hrvWritten: Bool
     let rhrWritten: Bool
     let temperatureWritten: Bool
+    let sleepWritten: Bool
     let writeDate: Date
     let errors: [String]
 
     var success: Bool {
-        return errors.isEmpty && (hrvWritten || rhrWritten || temperatureWritten)
+        return errors.isEmpty && (hrvWritten || rhrWritten || temperatureWritten || sleepWritten)
     }
 }
 
@@ -33,7 +34,8 @@ final class PolarHealthKitWriter: ObservableObject {
         var types: Set<HKSampleType> = [
             HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!
+            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
+            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
         return types
     }()
@@ -42,7 +44,8 @@ final class PolarHealthKitWriter: ObservableObject {
         var types: Set<HKObjectType> = [
             HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!
+            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
+            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
         return types
     }()
@@ -66,12 +69,14 @@ final class PolarHealthKitWriter: ObservableObject {
         hrv: PolarHRVResult?,
         rhr: PolarRHRResult?,
         temperature: Double?,
+        sleep: PolarSleepResult?,
         measurementDate: Date
     ) async -> PolarHealthKitWriteResult {
         var errors: [String] = []
         var hrvWritten = false
         var rhrWritten = false
         var temperatureWritten = false
+        var sleepWritten = false
 
         // Write HRV
         if let hrv = hrv, hrv.isReliable {
@@ -106,10 +111,22 @@ final class PolarHealthKitWriter: ObservableObject {
             }
         }
 
+        // Write Sleep
+        if let sleep = sleep {
+            do {
+                try await writeSleep(sleep)
+                sleepWritten = true
+                print("PolarHealthKitWriter: Wrote sleep \(sleep.sleepDurationMinutes) min")
+            } catch {
+                errors.append("Sleep: \(error.localizedDescription)")
+            }
+        }
+
         let result = PolarHealthKitWriteResult(
             hrvWritten: hrvWritten,
             rhrWritten: rhrWritten,
             temperatureWritten: temperatureWritten,
+            sleepWritten: sleepWritten,
             writeDate: Date(),
             errors: errors
         )
@@ -226,6 +243,179 @@ final class PolarHealthKitWriter: ObservableObject {
         print("PolarHealthKitWriter: Temperature save completed successfully")
     }
 
+    // MARK: - Write Sleep
+
+    func writeSleep(_ sleepResult: PolarSleepResult) async throws {
+        guard let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else {
+            throw PolarHealthKitError.invalidType
+        }
+
+        // Validate sleep times
+        guard sleepResult.sleepStartTime < sleepResult.sleepEndTime else {
+            print("PolarHealthKitWriter: Invalid sleep times - start (\(sleepResult.sleepStartTime)) >= end (\(sleepResult.sleepEndTime))")
+            throw PolarHealthKitError.invalidSleepData
+        }
+
+        print("PolarHealthKitWriter: Writing sleep from \(sleepResult.sleepStartTime) to \(sleepResult.sleepEndTime) (\(sleepResult.sleepDurationMinutes) min, \(sleepResult.sleepPhases.count) phases)")
+
+        // Check if we already have Polar sleep data for this night
+        if await hasPolarSleepSample(overlapping: sleepResult.sleepInterval) {
+            print("PolarHealthKitWriter: Deleting old sleep samples to update with new data")
+            try? await deletePolarSleepSamples(overlapping: sleepResult.sleepInterval)
+        }
+
+        var samplesToSave: [HKCategorySample] = []
+
+        // Write individual sleep phases if available
+        if !sleepResult.sleepPhases.isEmpty {
+            // Sort phases by time
+            let sortedPhases = sleepResult.sleepPhases.sorted {
+                $0.secondsFromSleepStart < $1.secondsFromSleepStart
+            }
+
+            for (index, phase) in sortedPhases.enumerated() {
+                let phaseStart = phase.timestamp(relativeTo: sleepResult.sleepStartTime)
+                let phaseEnd: Date
+
+                if index < sortedPhases.count - 1 {
+                    phaseEnd = sortedPhases[index + 1].timestamp(relativeTo: sleepResult.sleepStartTime)
+                } else {
+                    phaseEnd = sleepResult.sleepEndTime
+                }
+
+                // Skip invalid intervals
+                guard phaseStart < phaseEnd else { continue }
+
+                let categoryValue = healthKitSleepValue(for: phase.state)
+
+                let sample = HKCategorySample(
+                    type: sleepType,
+                    value: categoryValue.rawValue,
+                    start: phaseStart,
+                    end: phaseEnd,
+                    metadata: [
+                        HKMetadataKeyWasUserEntered: false,
+                        Self.polarSourceKey: true
+                    ]
+                )
+                samplesToSave.append(sample)
+            }
+        } else {
+            // No phase data - write as single asleep period
+            let sample = HKCategorySample(
+                type: sleepType,
+                value: HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+                start: sleepResult.sleepStartTime,
+                end: sleepResult.sleepEndTime,
+                metadata: [
+                    HKMetadataKeyWasUserEntered: false,
+                    Self.polarSourceKey: true
+                ]
+            )
+            samplesToSave.append(sample)
+        }
+
+        // Also write an "inBed" sample for the entire duration
+        let inBedSample = HKCategorySample(
+            type: sleepType,
+            value: HKCategoryValueSleepAnalysis.inBed.rawValue,
+            start: sleepResult.sleepStartTime,
+            end: sleepResult.sleepEndTime,
+            metadata: [
+                HKMetadataKeyWasUserEntered: false,
+                Self.polarSourceKey: true
+            ]
+        )
+        samplesToSave.append(inBedSample)
+
+        print("PolarHealthKitWriter: Saving \(samplesToSave.count) sleep samples from \(sleepResult.sleepStartTime) to \(sleepResult.sleepEndTime)")
+        try await healthStore.save(samplesToSave)
+        print("PolarHealthKitWriter: Sleep save completed successfully")
+    }
+
+    private func healthKitSleepValue(for polarState: PolarSleepState) -> HKCategoryValueSleepAnalysis {
+        switch polarState {
+        case .wake:
+            return .awake
+        case .rem:
+            return .asleepREM
+        case .lightSleep:
+            return .asleepCore
+        case .deepSleep:
+            return .asleepDeep
+        case .unknown:
+            return .asleepUnspecified
+        }
+    }
+
+    private func hasPolarSleepSample(overlapping interval: DateInterval) async -> Bool {
+        guard let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else {
+            return false
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: interval.start,
+            end: interval.end,
+            options: .strictStartDate
+        )
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, results, error in
+                if let error = error {
+                    print("PolarHealthKitWriter: Error checking for existing sleep samples: \(error)")
+                    continuation.resume(returning: false)
+                    return
+                }
+
+                let polarSamples = results?.filter { sample in
+                    (sample.metadata?[Self.polarSourceKey] as? Bool) == true
+                } ?? []
+
+                print("PolarHealthKitWriter: Found \(polarSamples.count) existing Polar sleep samples")
+                continuation.resume(returning: !polarSamples.isEmpty)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private func deletePolarSleepSamples(overlapping interval: DateInterval) async throws {
+        guard let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else {
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: interval.start,
+            end: interval.end,
+            options: .strictStartDate
+        )
+
+        let samples: [HKSample] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, results, _ in
+                continuation.resume(returning: results ?? [])
+            }
+            healthStore.execute(query)
+        }
+
+        let polarSamples = samples.filter { sample in
+            (sample.metadata?[Self.polarSourceKey] as? Bool) == true
+        }
+
+        guard !polarSamples.isEmpty else { return }
+
+        try await healthStore.delete(polarSamples)
+        print("PolarHealthKitWriter: Deleted \(polarSamples.count) old Polar sleep samples")
+    }
+
     // MARK: - Duplicate Detection
 
     private func hasPolarSample(type: HKQuantityType, on date: Date) async -> Bool {
@@ -327,6 +517,7 @@ enum PolarHealthKitError: LocalizedError {
     case invalidType
     case writeFailed(Error)
     case notAuthorized
+    case invalidSleepData
 
     var errorDescription: String? {
         switch self {
@@ -338,6 +529,8 @@ enum PolarHealthKitError: LocalizedError {
             return "Failed to write to HealthKit: \(error.localizedDescription)"
         case .notAuthorized:
             return "HealthKit write permission not granted"
+        case .invalidSleepData:
+            return "Invalid sleep data (start time after end time)"
         }
     }
 }

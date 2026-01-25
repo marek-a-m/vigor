@@ -14,6 +14,9 @@ struct DailyHealthData {
 final class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
 
+    // Must match PolarHealthKitWriter.polarSourceKey
+    private static let polarSourceKey = "PolarLoopSync"
+
     @Published var isAuthorized = false
     @Published var metrics = HealthMetrics()
     @Published var isLoading = false
@@ -83,6 +86,22 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func fetchSleepData() async -> Double? {
+        // Prefer Polar sleep data if available (more accurate sleep tracking)
+        if let polarSleep = await fetchPolarSleep() {
+            print("HealthKitManager: Using Polar sleep: \(String(format: "%.1f", polarSleep)) hours")
+            return polarSleep
+        }
+
+        // Fall back to all sleep sources (Apple Watch, etc.)
+        let sleep = await fetchAllSleepSources()
+        if let sleep = sleep {
+            print("HealthKitManager: Using generic sleep: \(String(format: "%.1f", sleep)) hours")
+        }
+        return sleep
+    }
+
+    /// Fetch sleep specifically from Polar source
+    private func fetchPolarSleep() async -> Double? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return nil
         }
@@ -98,6 +117,8 @@ final class HealthKitManager: ObservableObject {
             options: .strictStartDate
         )
 
+        let polarKey = Self.polarSourceKey
+
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: sleepType,
@@ -110,6 +131,70 @@ final class HealthKitManager: ObservableObject {
                     return
                 }
 
+                // Filter to only Polar samples
+                let polarSamples = samples.filter { sample in
+                    (sample.metadata?[polarKey] as? Bool) == true
+                }
+
+                print("HealthKitManager: fetchPolarSleep - \(samples.count) total samples, \(polarSamples.count) Polar samples")
+
+                guard !polarSamples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Use inBed samples to get total sleep duration
+                // This gives us the full sleep session time as reported by Polar
+                let inBedSamples = polarSamples.filter { $0.value == HKCategoryValueSleepAnalysis.inBed.rawValue }
+
+                let totalSleep = inBedSamples
+                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+
+                let hours = totalSleep / 3600.0
+                print("HealthKitManager: Polar sleep total (from inBed): \(String(format: "%.1f", hours)) hours")
+                continuation.resume(returning: hours > 0 ? hours : nil)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    /// Fetch sleep from all sources (fallback when Polar not available)
+    private func fetchAllSleepSources() async -> Double? {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfYesterday,
+            end: now,
+            options: .strictStartDate
+        )
+
+        let polarKey = Self.polarSourceKey
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                guard let samples = samples as? [HKCategorySample], error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Exclude Polar samples to avoid double-counting if this is called as fallback
+                let nonPolarSamples = samples.filter { sample in
+                    (sample.metadata?[polarKey] as? Bool) != true
+                }
+
                 let asleepValues: Set<Int> = [
                     HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
                     HKCategoryValueSleepAnalysis.asleepCore.rawValue,
@@ -117,7 +202,7 @@ final class HealthKitManager: ObservableObject {
                     HKCategoryValueSleepAnalysis.asleepREM.rawValue
                 ]
 
-                let totalSleep = samples
+                let totalSleep = nonPolarSamples
                     .filter { asleepValues.contains($0.value) }
                     .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
 
@@ -164,6 +249,8 @@ final class HealthKitManager: ObservableObject {
             options: .strictStartDate
         )
 
+        let polarKey = Self.polarSourceKey
+
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: hrvType,
@@ -178,7 +265,7 @@ final class HealthKitManager: ObservableObject {
 
                 // Find the most recent Polar sample
                 let polarSample = samples.first { sample in
-                    (sample.metadata?["PolarLoopSync"] as? Bool) == true
+                    (sample.metadata?[polarKey] as? Bool) == true
                 }
 
                 if let polarSample = polarSample {
@@ -521,6 +608,7 @@ final class HealthKitManager: ObservableObject {
     }
 
     /// Fetch historical sleep data grouped by day
+    /// Prefers Polar data when available to avoid double-counting with other sources
     private func fetchHistoricalSleep(from startDate: Date, to endDate: Date) async -> [Date: Double] {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return [:]
@@ -536,6 +624,8 @@ final class HealthKitManager: ObservableObject {
             end: adjustedEnd,
             options: .strictStartDate
         )
+
+        let polarKey = Self.polarSourceKey
 
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
@@ -556,12 +646,43 @@ final class HealthKitManager: ObservableObject {
                     HKCategoryValueSleepAnalysis.asleepREM.rawValue
                 ]
 
+                // Separate Polar and non-Polar samples
+                let polarSamples = samples.filter { sample in
+                    (sample.metadata?[polarKey] as? Bool) == true
+                }
+                let nonPolarSamples = samples.filter { sample in
+                    (sample.metadata?[polarKey] as? Bool) != true
+                }
+
+                print("HealthKitManager: Historical sleep - \(samples.count) total, \(polarSamples.count) Polar, \(nonPolarSamples.count) non-Polar")
+
                 // Group sleep by the day it ends (wake up day)
-                var sleepByDay: [Date: Double] = [:]
-                for sample in samples where asleepValues.contains(sample.value) {
+                // For each day, prefer Polar data if available
+                var polarSleepByDay: [Date: Double] = [:]
+                var nonPolarSleepByDay: [Date: Double] = [:]
+
+                // For Polar: use inBed samples to get total sleep duration per session
+                // This avoids splitting sleep across midnight and excludes awake phases from count
+                let polarInBedSamples = polarSamples.filter { $0.value == HKCategoryValueSleepAnalysis.inBed.rawValue }
+                for sample in polarInBedSamples {
                     let wakeDay = calendar.startOfDay(for: sample.endDate)
                     let duration = sample.endDate.timeIntervalSince(sample.startDate) / 3600.0
-                    sleepByDay[wakeDay, default: 0] += duration
+                    polarSleepByDay[wakeDay, default: 0] += duration
+                }
+
+                // For non-Polar: sum individual asleep stages (traditional approach)
+                for sample in nonPolarSamples where asleepValues.contains(sample.value) {
+                    let wakeDay = calendar.startOfDay(for: sample.endDate)
+                    let duration = sample.endDate.timeIntervalSince(sample.startDate) / 3600.0
+                    nonPolarSleepByDay[wakeDay, default: 0] += duration
+                }
+
+                print("HealthKitManager: Polar sleep by day: \(polarSleepByDay.map { ($0.key, String(format: "%.1f", $0.value)) })")
+
+                // Merge: use Polar data for days where it exists, otherwise use non-Polar
+                var sleepByDay: [Date: Double] = nonPolarSleepByDay
+                for (day, hours) in polarSleepByDay {
+                    sleepByDay[day] = hours  // Polar overwrites non-Polar for that day
                 }
 
                 continuation.resume(returning: sleepByDay)

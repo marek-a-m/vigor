@@ -234,6 +234,7 @@ final class PolarSyncManager: ObservableObject {
                 hrv: hrv,
                 rhr: rhr,
                 temperature: bodyTemperature,
+                sleep: sleepData.first,
                 measurementDate: measurementDate
             )
 
@@ -396,6 +397,7 @@ final class PolarSyncManager: ObservableObject {
                     hrv: hrv,
                     rhr: rhr,
                     temperature: bodyTemperature,
+                    sleep: sleepData.first,
                     measurementDate: measurementDate
                 )
 
