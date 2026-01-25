@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 struct WorkoutView: View {
     @StateObject private var workoutManager = PolarWorkoutManager.shared
@@ -239,7 +240,7 @@ struct WorkoutView: View {
     // MARK: - Active Workout View
 
     private var activeWorkoutView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Header with workout type and recording indicator
             HStack {
                 if let workoutType = workoutManager.currentWorkoutType {
@@ -268,18 +269,18 @@ struct WorkoutView: View {
 
             // Elapsed time
             Text(workoutManager.formattedElapsedTime)
-                .font(.system(size: 64, weight: .bold, design: .monospaced))
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white)
 
             // Stats grid
-            HStack(spacing: 24) {
+            HStack(spacing: 20) {
                 // Heart rate
                 VStack(spacing: 4) {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .foregroundStyle(.red)
                         Text("\(workoutManager.currentHeartRate)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                     }
                     Text("bpm")
                         .font(.caption)
@@ -287,12 +288,12 @@ struct WorkoutView: View {
                 }
 
                 Divider()
-                    .frame(height: 50)
+                    .frame(height: 40)
 
                 // Average HR
                 VStack(spacing: 4) {
                     Text("\(workoutManager.averageHeartRate)")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
                     Text("avg bpm")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -301,14 +302,14 @@ struct WorkoutView: View {
                 // Distance (for outdoor workouts)
                 if workoutManager.isTrackingLocation {
                     Divider()
-                        .frame(height: 50)
+                        .frame(height: 40)
 
                     VStack(spacing: 4) {
                         HStack(spacing: 4) {
                             Image(systemName: "location.fill")
                                 .foregroundStyle(.blue)
                             Text(workoutManager.formattedDistance)
-                                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                .font(.system(size: 22, weight: .semibold, design: .rounded))
                         }
                         if let pace = workoutManager.formattedPace {
                             Text(pace)
@@ -321,6 +322,13 @@ struct WorkoutView: View {
             .padding()
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            // Map for GPS workouts
+            if workoutManager.isTrackingLocation {
+                WorkoutMapView(locationTracker: locationTracker)
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
 
             Spacer()
 
@@ -531,6 +539,67 @@ struct AllWorkoutsSheet: View {
                     Button("Done") {
                         dismiss()
                     }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Workout Map View
+
+struct WorkoutMapView: View {
+    @ObservedObject var locationTracker: LocationTracker
+
+    @State private var mapCameraPosition: MapCameraPosition = .automatic
+
+    var body: some View {
+        Map(position: $mapCameraPosition) {
+            // Route polyline
+            if locationTracker.routeLocations.count > 1 {
+                MapPolyline(coordinates: locationTracker.routeLocations.map { $0.coordinate })
+                    .stroke(.blue, lineWidth: 4)
+            }
+
+            // Current location marker
+            if let currentLocation = locationTracker.currentLocation {
+                Annotation("", coordinate: currentLocation.coordinate) {
+                    ZStack {
+                        Circle()
+                            .fill(.blue.opacity(0.3))
+                            .frame(width: 32, height: 32)
+                        Circle()
+                            .fill(.blue)
+                            .frame(width: 14, height: 14)
+                        Circle()
+                            .stroke(.white, lineWidth: 2)
+                            .frame(width: 14, height: 14)
+                    }
+                }
+            }
+
+            // Start location marker
+            if let startLocation = locationTracker.routeLocations.first {
+                Annotation("Start", coordinate: startLocation.coordinate) {
+                    Image(systemName: "flag.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+        .mapStyle(.standard(elevation: .realistic))
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+        }
+        .onChange(of: locationTracker.currentLocation) { _, newLocation in
+            // Follow user location
+            if let location = newLocation {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    mapCameraPosition = .region(MKCoordinateRegion(
+                        center: location.coordinate,
+                        latitudinalMeters: 500,
+                        longitudinalMeters: 500
+                    ))
                 }
             }
         }
