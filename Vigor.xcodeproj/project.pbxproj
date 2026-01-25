@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -125,7 +125,7 @@
 		18C61C4B226FE1E6E684ED3D /* VigorScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorScore.swift; sourceTree = "<group>"; };
 		19A2ED9BDCA3AE6659753A73 /* BackgroundSyncScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncScheduler.swift; sourceTree = "<group>"; };
 		19DFCB3647AB35F1F6DEBDE4 /* PolarDataFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarDataFetcher.swift; sourceTree = "<group>"; };
-		1C8774F4D37AC3BF612D6588 /* Vigor.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vigor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1C8774F4D37AC3BF612D6588 /* Vigor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vigor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21A791C6EFD70BE5264E8464 /* VigorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorApp.swift; sourceTree = "<group>"; };
 		26D7D3DB495214E1A6E83189 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2DDB1B52500054EAA844895C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -135,7 +135,7 @@
 		47D2B36DD0E81A227CE50331 /* VigorWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VigorWidget.swift; sourceTree = "<group>"; };
 		4EA185F97E738AE022161FC4 /* PolarBackgroundSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarBackgroundSyncService.swift; sourceTree = "<group>"; };
 		516DC190ADEA2BA3A8661DC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		5189CBC2366D89421DD94045 /* VigorWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = VigorWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5189CBC2366D89421DD94045 /* VigorWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VigorWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		532F5D26928C4117D6FF8AEC /* LocationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTracker.swift; sourceTree = "<group>"; };
 		578ED3AC80FC58C9048EEF9D /* VigorWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VigorWatch.entitlements; sourceTree = "<group>"; };
 		665E1DAF850D2BF03CDFE240 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
@@ -417,7 +417,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					3C7F91254AE4ED46E7DE447D = {
 						DevelopmentTeam = 4YN4S8KBCP;
@@ -450,7 +450,6 @@
 			packageReferences = (
 				03BBD6185F71B6AAA154D8A7 /* XCRemoteSwiftPackageReference "polar-ble-sdk" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -671,10 +670,12 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 4YN4S8KBCP;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -687,6 +688,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -793,10 +795,12 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 4YN4S8KBCP;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -816,6 +820,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
