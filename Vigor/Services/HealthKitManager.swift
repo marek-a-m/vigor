@@ -36,6 +36,12 @@ final class HealthKitManager: ObservableObject {
         return types
     }()
 
+    private let writeTypes: Set<HKSampleType> = [
+        HKObjectType.workoutType(),
+        HKObjectType.quantityType(forIdentifier: .heartRate)!,
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+    ]
+
     func requestAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else {
             errorMessage = "Health data not available on this device"
@@ -43,7 +49,7 @@ final class HealthKitManager: ObservableObject {
         }
 
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+            try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             isAuthorized = true
             await fetchAllMetrics()
         } catch {
@@ -809,5 +815,64 @@ final class HealthKitManager: ObservableObject {
     func fetchMetricsForDay(_ date: Date) async -> DailyHealthData {
         let results = await fetchHistoricalMetrics(from: date, to: date)
         return results.first ?? DailyHealthData(date: date)
+    }
+
+    // MARK: - Workout Saving
+
+    /// Save a workout to Apple Health
+    /// - Parameters:
+    ///   - activityType: The type of workout (running, cycling, etc.)
+    ///   - startDate: When the workout started
+    ///   - endDate: When the workout ended
+    ///   - averageHeartRate: Average heart rate during workout (optional)
+    ///   - heartRateSamples: Array of (timestamp, heartRate) tuples for HR data points
+    /// - Returns: true if saved successfully
+    func saveWorkout(
+        activityType: HKWorkoutActivityType,
+        startDate: Date,
+        endDate: Date,
+        averageHeartRate: Int?,
+        heartRateSamples: [(date: Date, hr: Int)] = []
+    ) async -> Bool {
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = activityType
+        configuration.locationType = .outdoor
+
+        do {
+            let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
+
+            try await builder.beginCollection(at: startDate)
+
+            // Add heart rate samples if available
+            if !heartRateSamples.isEmpty {
+                let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+                let hrUnit = HKUnit.count().unitDivided(by: .minute())
+
+                let hrSamples = heartRateSamples.map { sample in
+                    HKQuantitySample(
+                        type: hrType,
+                        quantity: HKQuantity(unit: hrUnit, doubleValue: Double(sample.hr)),
+                        start: sample.date,
+                        end: sample.date
+                    )
+                }
+
+                try await builder.addSamples(hrSamples)
+            }
+
+            try await builder.endCollection(at: endDate)
+
+            if let workout = try await builder.finishWorkout() {
+                print("HealthKitManager: Saved workout to Apple Health - \(workout.workoutActivityType.rawValue)")
+                return true
+            } else {
+                print("HealthKitManager: finishWorkout returned nil")
+                return false
+            }
+
+        } catch {
+            print("HealthKitManager: Failed to save workout - \(error.localizedDescription)")
+            return false
+        }
     }
 }

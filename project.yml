@@ -10,7 +10,7 @@ options:
 packages:
   PolarBleSdk:
     url: https://github.com/polarofficial/polar-ble-sdk.git
-    majorVersion: 6.0.0
+    majorVersion: 6.6.0
 
 schemes:
   Vigor:

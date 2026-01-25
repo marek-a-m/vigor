@@ -11,6 +11,8 @@ struct DashboardView: View {
     @State private var showSettings = false
     @ObservedObject private var whoopService = WhoopStandService.shared
     @ObservedObject private var settingsManager = SettingsManager.shared
+    @ObservedObject private var polarService = PolarBLEService.shared
+    @ObservedObject private var workoutManager = PolarWorkoutManager.shared
 
     private var todayScore: VigorScore? {
         let calendar = Calendar.current
@@ -61,6 +63,13 @@ struct DashboardView: View {
                     } else if let score = todayScore {
                         scoreCard(score)
                         metricsBreakdown(score)
+                        if settingsManager.polarIntegrationEnabled && polarService.connectionState.isConnected {
+                            WorkoutControlCard(
+                                workoutManager: workoutManager,
+                                polarService: polarService,
+                                healthKitManager: healthKitManager
+                            )
+                        }
                         if settingsManager.whoopIntegrationEnabled {
                             whoopActivityCard
                         }
