@@ -26,21 +26,29 @@ struct WorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    if workoutManager.workoutState.isActive || workoutManager.workoutState.isTransitioning {
-                        activeWorkoutView
-                    } else if let workout = selectedWorkout {
-                        preWorkoutView(workout: workout)
-                    } else {
-                        idleWorkoutView
+            Group {
+                if workoutManager.workoutState.isActive || workoutManager.workoutState.isTransitioning {
+                    // Active workout - no scroll, fixed layout
+                    activeWorkoutView
+                        .padding()
+                } else {
+                    // Idle/pre-workout - scrollable
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            if let workout = selectedWorkout {
+                                preWorkoutView(workout: workout)
+                            } else {
+                                idleWorkoutView
+                            }
+                        }
+                        .padding()
+                        .padding(.top, 8)
                     }
                 }
-                .padding()
-                .padding(.top, 8)
             }
             .scrollContentBackground(.hidden)
             .background(backgroundColor.ignoresSafeArea())
+            .toolbar(workoutManager.workoutState.isActive ? .hidden : .visible, for: .tabBar)
             .navigationTitle("Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -73,10 +81,7 @@ struct WorkoutView: View {
                 AllWorkoutsSheet(onSelect: selectWorkout)
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(
-                    settingsManager: settingsManager,
-                    whoopService: WhoopStandService.shared
-                )
+                SettingsView(settingsManager: settingsManager)
             }
             .alert("Workout Error", isPresented: $showError) {
                 Button("OK") {
@@ -241,6 +246,8 @@ struct WorkoutView: View {
 
     private var activeWorkoutView: some View {
         VStack(spacing: 16) {
+            Spacer()
+                .frame(height: 8)
             // Header with workout type and recording indicator
             HStack {
                 if let workoutType = workoutManager.currentWorkoutType {
@@ -334,7 +341,9 @@ struct WorkoutView: View {
 
             // Stop button
             stopWorkoutButton
+                .padding(.bottom, 16)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Connection Status Card

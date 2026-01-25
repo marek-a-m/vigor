@@ -9,7 +9,6 @@ struct DashboardView: View {
     var healthKitManager: HealthKitManager
 
     @State private var showSettings = false
-    @ObservedObject private var whoopService = WhoopStandService.shared
     @ObservedObject private var settingsManager = SettingsManager.shared
 
     private var todayScore: VigorScore? {
@@ -61,9 +60,6 @@ struct DashboardView: View {
                     } else if let score = todayScore {
                         scoreCard(score)
                         metricsBreakdown(score)
-                        if settingsManager.whoopIntegrationEnabled {
-                            whoopActivityCard
-                        }
                         if score.hasMissingData {
                             missingDataWarning(score)
                         }
@@ -84,10 +80,7 @@ struct DashboardView: View {
                 updateWidgetData()
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(
-                    settingsManager: SettingsManager.shared,
-                    whoopService: WhoopStandService.shared
-                )
+                SettingsView(settingsManager: SettingsManager.shared)
             }
         }
     }
@@ -264,41 +257,6 @@ struct DashboardView: View {
         .padding()
         .background(Color.yellow.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var whoopActivityCard: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .stroke(Color.blue.opacity(0.2), lineWidth: 8)
-                    .frame(width: 60, height: 60)
-
-                Circle()
-                    .trim(from: 0, to: min(Double(whoopService.todayActiveHours) / 12.0, 1.0))
-                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .frame(width: 60, height: 60)
-                    .rotationEffect(.degrees(-90))
-
-                Text("\(whoopService.todayActiveHours)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.blue)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("WHOOP Active Hours")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                Text("Hours with 100+ steps from WHOOP")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func scoreColor(_ score: Double) -> Color {

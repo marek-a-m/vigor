@@ -79,7 +79,7 @@ final class HealthKitManager: ObservableObject {
         metrics.temperatureBaseline = await tempBase
 
         // Fetch HRV with WHOOP fallback if no Apple Watch data
-        metrics.hrv = await fetchHRVWithWhoopFallback()
+        metrics.hrv = await fetchHRVData()
 
         // Calculate temperature deviation from baseline
         if let currentTemp = await temp, let baselineTemp = metrics.temperatureBaseline {
@@ -87,12 +87,6 @@ final class HealthKitManager: ObservableObject {
         } else {
             metrics.wristTemperatureDeviation = nil
         }
-    }
-
-    /// Fetch HRV with WHOOP fallback if no data from other sources
-    private func fetchHRVWithWhoopFallback() async -> Double? {
-        // Always use WhoopHRVService for consistent logging and fallback logic
-        return await WhoopHRVService.shared.fetchHRVWithWhoopFallback()
     }
 
     private func fetchSleepData() async -> Double? {

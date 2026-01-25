@@ -13,16 +13,6 @@ struct VigorApp: App {
         // Register Polar background sync tasks
         PolarBackgroundSyncService.shared.registerBackgroundTasks()
 
-        // Start WHOOP Stand Service if enabled
-        if SettingsManager.shared.whoopIntegrationEnabled {
-            Task {
-                let authorized = await WhoopStandService.shared.requestAuthorization()
-                if authorized {
-                    WhoopStandService.shared.startMonitoring()
-                }
-            }
-        }
-
         // Schedule Polar background sync tasks if enabled
         PolarBackgroundSyncService.shared.scheduleInitialTasks()
 

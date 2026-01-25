@@ -6,18 +6,11 @@ final class SettingsManager: ObservableObject {
     private let defaults: UserDefaults
 
     private enum Keys {
-        static let whoopIntegrationEnabled = "whoopIntegrationEnabled"
         static let polarIntegrationEnabled = "polarIntegrationEnabled"
         static let polarDeviceId = "polarPairedDeviceId"
         static let polarDeviceName = "polarPairedDeviceName"
         static let polarBackgroundSyncEnabled = "polarBackgroundSyncEnabled"
         static let favoriteWorkoutIds = "favoriteWorkoutIds"
-    }
-
-    @Published var whoopIntegrationEnabled: Bool {
-        didSet {
-            defaults.set(whoopIntegrationEnabled, forKey: Keys.whoopIntegrationEnabled)
-        }
     }
 
     @Published var polarIntegrationEnabled: Bool {
@@ -70,7 +63,6 @@ final class SettingsManager: ObservableObject {
             self.defaults = .standard
         }
 
-        self.whoopIntegrationEnabled = defaults.bool(forKey: Keys.whoopIntegrationEnabled)
         self.polarIntegrationEnabled = defaults.bool(forKey: Keys.polarIntegrationEnabled)
         self.polarDeviceId = defaults.string(forKey: Keys.polarDeviceId)
         self.polarDeviceName = defaults.string(forKey: Keys.polarDeviceName)
