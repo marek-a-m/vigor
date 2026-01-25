@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var healthKitManager = HealthKitManager()
     @ObservedObject private var polarBLEService = PolarBLEService.shared
     @ObservedObject private var settingsManager = SettingsManager.shared
+    @ObservedObject private var workoutManager = PolarWorkoutManager.shared
     @State private var syncManager: SyncManager?
     @State private var selectedTab = 0
     @State private var showSyncOverlay = false
@@ -33,6 +34,7 @@ struct ContentView: View {
                     .tag(2)
             }
         }
+        .toolbar(workoutManager.workoutState.isActive ? .hidden : .visible, for: .tabBar)
         .overlay {
             if showSyncOverlay, let syncManager {
                 SyncOverlay(progress: syncManager.syncProgress)
