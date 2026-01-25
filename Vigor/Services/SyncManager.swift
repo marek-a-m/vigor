@@ -226,6 +226,8 @@ final class SyncManager: ObservableObject {
             existing.hrvValue = vigorScore.hrvValue
             existing.rhrValue = vigorScore.rhrValue
             existing.temperatureDeviation = vigorScore.temperatureDeviation
+            existing.hrvBaseline = vigorScore.hrvBaseline
+            existing.rhrBaseline = vigorScore.rhrBaseline
             existing.missingMetrics = vigorScore.missingMetrics
         } else {
             // Insert new score

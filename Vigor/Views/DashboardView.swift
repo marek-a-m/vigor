@@ -213,7 +213,8 @@ struct DashboardView: View {
                     title: "HRV",
                     value: score.hrvValue.map { String(format: "%.0f ms", $0) } ?? "-",
                     score: hrvScore,
-                    weight: "30%"
+                    weight: "30%",
+                    baseline: score.hrvBaseline.map { String(format: "%.0f ms", $0) }
                 )
             }
 
@@ -223,7 +224,8 @@ struct DashboardView: View {
                     title: "Resting HR",
                     value: score.rhrValue.map { String(format: "%.0f bpm", $0) } ?? "-",
                     score: rhrScore,
-                    weight: "25%"
+                    weight: "25%",
+                    baseline: score.rhrBaseline.map { String(format: "%.0f bpm", $0) }
                 )
             }
 
@@ -343,6 +345,7 @@ struct MetricRow: View {
     let value: String
     let score: Double
     let weight: String
+    var baseline: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -354,9 +357,16 @@ struct MetricRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline)
-                Text(value)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text(value)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let baseline = baseline {
+                        Text("/ \(baseline)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
 
             Spacer()

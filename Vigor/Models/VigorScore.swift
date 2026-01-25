@@ -16,6 +16,9 @@ final class VigorScore {
     var rhrValue: Double?
     var temperatureDeviation: Double?
 
+    var hrvBaseline: Double?
+    var rhrBaseline: Double?
+
     var missingMetrics: [String] = []
 
     init(
@@ -29,6 +32,8 @@ final class VigorScore {
         hrvValue: Double? = nil,
         rhrValue: Double? = nil,
         temperatureDeviation: Double? = nil,
+        hrvBaseline: Double? = nil,
+        rhrBaseline: Double? = nil,
         missingMetrics: [String] = []
     ) {
         self.date = date
@@ -41,6 +46,8 @@ final class VigorScore {
         self.hrvValue = hrvValue
         self.rhrValue = rhrValue
         self.temperatureDeviation = temperatureDeviation
+        self.hrvBaseline = hrvBaseline
+        self.rhrBaseline = rhrBaseline
         self.missingMetrics = missingMetrics
     }
 

@@ -155,6 +155,14 @@ enum HistoryMetricType: String, CaseIterable {
         case .temperature: return String(format: "%+.1f", value)
         }
     }
+
+    func baseline(from score: VigorScore) -> Double? {
+        switch self {
+        case .hrv: return score.hrvBaseline
+        case .rhr: return score.rhrBaseline
+        default: return nil
+        }
+    }
 }
 
 // MARK: - Metric Picker
@@ -220,6 +228,11 @@ struct MetricChartView: View {
         }
     }
 
+    private var baselineValue: Double? {
+        // Get baseline from most recent score
+        scores.last.flatMap { metric.baseline(from: $0) }
+    }
+
     private var xDomain: ClosedRange<Date> {
         let calendar = Calendar.current
         let now = Date()
@@ -242,11 +255,15 @@ struct MetricChartView: View {
         if let domain = metric.chartDomain {
             return domain
         }
-        let values = validData.map(\.value)
+        var values = validData.map(\.value)
+        // Include baseline in domain calculation so it's always visible
+        if let baseline = baselineValue {
+            values.append(baseline)
+        }
         guard let min = values.min(), let max = values.max() else {
             return 0...100
         }
-        let padding = (max - min) * 0.1
+        let padding = (max - min) * 0.15
         return (min - padding)...(max + padding)
     }
 
@@ -258,32 +275,50 @@ struct MetricChartView: View {
                 description: Text("No \(metric.rawValue.lowercased()) data available for this period.")
             )
         } else {
-            Chart(validData, id: \.date) { item in
-                LineMark(
-                    x: .value("Date", item.date),
-                    y: .value(metric.rawValue, item.value)
-                )
-                .foregroundStyle(metric.color.gradient)
-                .interpolationMethod(.catmullRom)
-
-                AreaMark(
-                    x: .value("Date", item.date),
-                    y: .value(metric.rawValue, item.value)
-                )
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [metric.color.opacity(0.3), metric.color.opacity(0.05)],
-                        startPoint: .top,
-                        endPoint: .bottom
+            Chart {
+                // Data line and area
+                ForEach(validData, id: \.date) { item in
+                    LineMark(
+                        x: .value("Date", item.date),
+                        y: .value(metric.rawValue, item.value)
                     )
-                )
-                .interpolationMethod(.catmullRom)
+                    .foregroundStyle(metric.color.gradient)
+                    .interpolationMethod(.catmullRom)
 
-                PointMark(
-                    x: .value("Date", item.date),
-                    y: .value(metric.rawValue, item.value)
-                )
-                .foregroundStyle(metric.color)
+                    AreaMark(
+                        x: .value("Date", item.date),
+                        y: .value(metric.rawValue, item.value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [metric.color.opacity(0.3), metric.color.opacity(0.05)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .interpolationMethod(.catmullRom)
+
+                    PointMark(
+                        x: .value("Date", item.date),
+                        y: .value(metric.rawValue, item.value)
+                    )
+                    .foregroundStyle(metric.color)
+                }
+
+                // Baseline reference line
+                if let baseline = baselineValue {
+                    RuleMark(y: .value("Baseline", baseline))
+                        .foregroundStyle(.blue.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                        .annotation(position: .top, alignment: .leading) {
+                            Text("baseline: \(metric.format(baseline))")
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                                .padding(.horizontal, 4)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(4)
+                        }
+                }
             }
             .chartXScale(domain: xDomain)
             .chartYScale(domain: yDomain)
@@ -334,6 +369,11 @@ struct MetricStatisticsView: View {
         values.count
     }
 
+    private var currentBaseline: Double? {
+        // Get baseline from most recent score
+        scores.first.flatMap { metric.baseline(from: $0) }
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
@@ -342,6 +382,13 @@ struct MetricStatisticsView: View {
                         title: "Average",
                         value: metric.format(avg) + metric.unit,
                         color: metric.color
+                    )
+                }
+                if let baseline = currentBaseline {
+                    StatBox(
+                        title: "Baseline",
+                        value: metric.format(baseline) + metric.unit,
+                        color: .blue
                     )
                 }
                 if let high = highest {
@@ -358,11 +405,6 @@ struct MetricStatisticsView: View {
                         color: .red
                     )
                 }
-                StatBox(
-                    title: "Entries",
-                    value: "\(dataCount)",
-                    color: .secondary
-                )
             }
         }
     }
@@ -395,14 +437,21 @@ struct MetricHistoryRow: View {
             Spacer()
 
             if let value = metric.value(from: score) {
-                HStack(spacing: 2) {
-                    Text(metric.format(value))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(colorForValue(value))
-                    Text(metric.unit)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    HStack(spacing: 2) {
+                        Text(metric.format(value))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(colorForValue(value))
+                        Text(metric.unit)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let baseline = metric.baseline(from: score) {
+                        Text("baseline: \(metric.format(baseline))\(metric.unit)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             } else {
                 Text("--")

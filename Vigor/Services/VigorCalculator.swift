@@ -56,6 +56,8 @@ struct VigorCalculator {
             hrvValue: metrics.hrv,
             rhrValue: metrics.restingHeartRate,
             temperatureDeviation: metrics.wristTemperatureDeviation,
+            hrvBaseline: metrics.hrvBaseline,
+            rhrBaseline: metrics.rhrBaseline,
             missingMetrics: missingMetrics
         )
     }
