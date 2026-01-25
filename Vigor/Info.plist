@@ -34,6 +34,10 @@
     <string>Vigor writes health data from connected devices (Polar, WHOOP) to Apple Health for recovery tracking.</string>
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>Vigor connects to your Polar device to sync HRV, heart rate, and temperature data.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Vigor tracks your location during outdoor workouts to record your route and calculate distance.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Vigor tracks your location during outdoor workouts to record your route, even when the app is in the background.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -51,6 +55,7 @@
         <string>bluetooth-central</string>
         <string>processing</string>
         <string>fetch</string>
+        <string>location</string>
     </array>
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>

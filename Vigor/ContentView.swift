@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var healthKitManager = HealthKitManager()
     @ObservedObject private var polarBLEService = PolarBLEService.shared
+    @ObservedObject private var settingsManager = SettingsManager.shared
     @State private var syncManager: SyncManager?
     @State private var selectedTab = 0
     @State private var showSyncOverlay = false
@@ -23,6 +24,14 @@ struct ContentView: View {
                     Label("History", systemImage: "chart.line.uptrend.xyaxis")
                 }
                 .tag(1)
+
+            if settingsManager.polarIntegrationEnabled {
+                WorkoutView(healthKitManager: healthKitManager)
+                    .tabItem {
+                        Label("Workout", systemImage: "figure.run")
+                    }
+                    .tag(2)
+            }
         }
         .overlay {
             if showSyncOverlay, let syncManager {

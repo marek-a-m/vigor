@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import CoreLocation
 
 /// Raw daily metrics fetched from HealthKit for a single day
 struct DailyHealthData {
@@ -39,7 +40,10 @@ final class HealthKitManager: ObservableObject {
     private let writeTypes: Set<HKSampleType> = [
         HKObjectType.workoutType(),
         HKObjectType.quantityType(forIdentifier: .heartRate)!,
-        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+        HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+        HKObjectType.quantityType(forIdentifier: .distanceCycling)!,
+        HKSeriesType.workoutRoute()
     ]
 
     func requestAuthorization() async {
@@ -826,17 +830,21 @@ final class HealthKitManager: ObservableObject {
     ///   - endDate: When the workout ended
     ///   - averageHeartRate: Average heart rate during workout (optional)
     ///   - heartRateSamples: Array of (timestamp, heartRate) tuples for HR data points
+    ///   - routeLocations: GPS locations for outdoor workouts (optional)
+    ///   - totalDistance: Total distance in meters (optional)
     /// - Returns: true if saved successfully
     func saveWorkout(
         activityType: HKWorkoutActivityType,
         startDate: Date,
         endDate: Date,
         averageHeartRate: Int?,
-        heartRateSamples: [(date: Date, hr: Int)] = []
+        heartRateSamples: [(date: Date, hr: Int)] = [],
+        routeLocations: [CLLocation]? = nil,
+        totalDistance: Double? = nil
     ) async -> Bool {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = activityType
-        configuration.locationType = .outdoor
+        configuration.locationType = routeLocations != nil ? .outdoor : .indoor
 
         do {
             let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
@@ -860,10 +868,30 @@ final class HealthKitManager: ObservableObject {
                 try await builder.addSamples(hrSamples)
             }
 
+            // Add distance sample if available
+            if let distance = totalDistance, distance > 0 {
+                let distanceType: HKQuantityTypeIdentifier = activityType == .cycling ? .distanceCycling : .distanceWalkingRunning
+                if let distanceQuantityType = HKQuantityType.quantityType(forIdentifier: distanceType) {
+                    let distanceSample = HKQuantitySample(
+                        type: distanceQuantityType,
+                        quantity: HKQuantity(unit: .meter(), doubleValue: distance),
+                        start: startDate,
+                        end: endDate
+                    )
+                    try await builder.addSamples([distanceSample])
+                }
+            }
+
             try await builder.endCollection(at: endDate)
 
             if let workout = try await builder.finishWorkout() {
                 print("HealthKitManager: Saved workout to Apple Health - \(workout.workoutActivityType.rawValue)")
+
+                // Add route data if available
+                if let locations = routeLocations, !locations.isEmpty {
+                    await addRouteToWorkout(workout: workout, locations: locations)
+                }
+
                 return true
             } else {
                 print("HealthKitManager: finishWorkout returned nil")
@@ -873,6 +901,28 @@ final class HealthKitManager: ObservableObject {
         } catch {
             print("HealthKitManager: Failed to save workout - \(error.localizedDescription)")
             return false
+        }
+    }
+
+    /// Add GPS route data to a workout
+    private func addRouteToWorkout(workout: HKWorkout, locations: [CLLocation]) async {
+        guard !locations.isEmpty else { return }
+
+        do {
+            let routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: nil)
+
+            // Insert locations in batches to avoid memory issues
+            let batchSize = 100
+            for i in stride(from: 0, to: locations.count, by: batchSize) {
+                let batch = Array(locations[i..<min(i + batchSize, locations.count)])
+                try await routeBuilder.insertRouteData(batch)
+            }
+
+            try await routeBuilder.finishRoute(with: workout, metadata: nil)
+            print("HealthKitManager: Added route with \(locations.count) points to workout")
+
+        } catch {
+            print("HealthKitManager: Failed to add route to workout - \(error.localizedDescription)")
         }
     }
 }

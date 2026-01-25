@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import CoreLocation
 import PolarBleSdk
 import RxSwift
 
@@ -38,7 +39,7 @@ enum WorkoutState: Equatable {
     }
 }
 
-// MARK: - Sport Profile
+// MARK: - Sport Profile (Legacy - kept for backward compatibility)
 
 enum WorkoutSportProfile: String, CaseIterable, Identifiable {
     case running = "Running"
@@ -62,6 +63,15 @@ enum WorkoutSportProfile: String, CaseIterable, Identifiable {
         case .other: return .other
         }
     }
+
+    /// Convert to new WorkoutType
+    var workoutType: WorkoutType? {
+        switch self {
+        case .running: return WorkoutType.find(by: "running")
+        case .cycling: return WorkoutType.find(by: "cycling")
+        case .other: return WorkoutType.find(by: "other_indoor")
+        }
+    }
 }
 
 // MARK: - Errors
@@ -71,6 +81,7 @@ enum PolarWorkoutError: LocalizedError {
     case workoutAlreadyActive
     case noActiveWorkout
     case streamingFailed(String)
+    case locationNotAuthorized
 
     var errorDescription: String? {
         switch self {
@@ -82,6 +93,8 @@ enum PolarWorkoutError: LocalizedError {
             return "No active workout to stop"
         case .streamingFailed(let message):
             return message
+        case .locationNotAuthorized:
+            return "Location permission required for outdoor workouts"
         }
     }
 }
@@ -96,24 +109,32 @@ final class PolarWorkoutManager: ObservableObject {
     static let shared = PolarWorkoutManager()
 
     @Published var workoutState: WorkoutState = .idle
-    @Published var currentSportProfile: WorkoutSportProfile = .other
+    @Published var currentWorkoutType: WorkoutType?
+    @Published var currentSportProfile: WorkoutSportProfile = .other  // Legacy, for backward compat
     @Published var elapsedSeconds: Int = 0
     @Published var currentHeartRate: Int = 0
     @Published var averageHeartRate: Int = 0
 
+    // Location tracking
+    @Published var isTrackingLocation: Bool = false
+    @Published var totalDistance: Double = 0  // meters
+    @Published var currentSpeed: Double = 0  // m/s
+
     private let polarService = PolarBLEService.shared
+    private let locationTracker = LocationTracker.shared
     private let disposeBag = DisposeBag()
     private var timerTask: Task<Void, Never>?
     private var hrStreamDisposable: Disposable?
     private var heartRateSamples: [Int] = []
     private var timestampedHRSamples: [(date: Date, hr: Int)] = []
     private var workoutStartTime: Date?
+    private var capturedRouteLocations: [CLLocation] = []
 
     private init() {}
 
-    // MARK: - Workout Control
+    // MARK: - Workout Control (New WorkoutType API)
 
-    func startWorkout(profile: WorkoutSportProfile) async throws {
+    func startWorkout(type: WorkoutType) async throws {
         guard polarService.connectionState.isConnected else {
             throw PolarWorkoutError.notConnected
         }
@@ -127,11 +148,26 @@ final class PolarWorkoutManager: ObservableObject {
         }
 
         workoutState = .starting
-        currentSportProfile = profile
+        currentWorkoutType = type
         heartRateSamples = []
         timestampedHRSamples = []
         currentHeartRate = 0
         averageHeartRate = 0
+        totalDistance = 0
+        currentSpeed = 0
+        capturedRouteLocations = []
+
+        // Start location tracking for outdoor workouts
+        if type.isOutdoor {
+            if locationTracker.isAuthorizedForTracking {
+                locationTracker.startTracking()
+                isTrackingLocation = true
+            } else {
+                locationTracker.requestAuthorization()
+                // Continue without GPS if not authorized
+                print("PolarWorkout: Location not authorized, continuing without GPS")
+            }
+        }
 
         // Start HR streaming for live heart rate during workout
         startHRStreaming(deviceId: deviceId)
@@ -142,7 +178,7 @@ final class PolarWorkoutManager: ObservableObject {
         elapsedSeconds = 0
         startTimer(from: startTime)
 
-        print("PolarWorkout: Started \(profile.rawValue) workout with HR streaming")
+        print("PolarWorkout: Started \(type.name) workout with HR streaming" + (type.isOutdoor ? " and GPS" : ""))
     }
 
     func stopWorkout(healthKitManager: HealthKitManager) async throws {
@@ -155,34 +191,99 @@ final class PolarWorkoutManager: ObservableObject {
         }
 
         let endTime = Date()
-        let sportProfile = currentSportProfile
+        let workoutType = currentWorkoutType
 
         workoutState = .stopping
         stopTimer()
         stopHRStreaming()
+
+        // Stop location tracking and capture route
+        if isTrackingLocation {
+            capturedRouteLocations = locationTracker.stopTracking()
+            totalDistance = locationTracker.totalDistance
+            isTrackingLocation = false
+        }
 
         // Calculate final average
         if !heartRateSamples.isEmpty {
             averageHeartRate = heartRateSamples.reduce(0, +) / heartRateSamples.count
         }
 
+        // Determine activity type
+        let activityType = workoutType?.healthKitType ?? currentSportProfile.healthKitActivityType
+
         // Save workout to Apple Health
         let saved = await healthKitManager.saveWorkout(
-            activityType: sportProfile.healthKitActivityType,
+            activityType: activityType,
             startDate: startTime,
             endDate: endTime,
             averageHeartRate: averageHeartRate > 0 ? averageHeartRate : nil,
-            heartRateSamples: timestampedHRSamples
+            heartRateSamples: timestampedHRSamples,
+            routeLocations: capturedRouteLocations.isEmpty ? nil : capturedRouteLocations,
+            totalDistance: totalDistance > 0 ? totalDistance : nil
         )
 
         if saved {
-            print("PolarWorkout: Saved workout to Apple Health. Duration: \(elapsedSeconds)s, Avg HR: \(averageHeartRate) bpm")
+            print("PolarWorkout: Saved workout to Apple Health. Duration: \(elapsedSeconds)s, Avg HR: \(averageHeartRate) bpm, Distance: \(String(format: "%.0f", totalDistance))m")
         } else {
             print("PolarWorkout: Failed to save workout to Apple Health")
         }
 
         workoutStartTime = nil
+        currentWorkoutType = nil
+        capturedRouteLocations = []
         workoutState = .idle
+    }
+
+    /// Discard the current workout without saving to Apple Health
+    func discardWorkout() async {
+        guard workoutState.isActive else { return }
+
+        workoutState = .stopping
+        stopTimer()
+        stopHRStreaming()
+
+        // Stop location tracking without saving route
+        if isTrackingLocation {
+            _ = locationTracker.stopTracking()
+            isTrackingLocation = false
+        }
+
+        print("PolarWorkout: Discarded workout. Duration: \(elapsedSeconds)s")
+
+        // Reset all state
+        workoutStartTime = nil
+        currentWorkoutType = nil
+        capturedRouteLocations = []
+        heartRateSamples = []
+        timestampedHRSamples = []
+        elapsedSeconds = 0
+        currentHeartRate = 0
+        averageHeartRate = 0
+        totalDistance = 0
+        currentSpeed = 0
+        workoutState = .idle
+    }
+
+    // MARK: - Workout Control (Legacy API - for WorkoutControlCard compatibility)
+
+    func startWorkout(profile: WorkoutSportProfile) async throws {
+        // Convert legacy profile to WorkoutType
+        if let workoutType = profile.workoutType {
+            try await startWorkout(type: workoutType)
+        } else {
+            // Fallback: create a basic workout type
+            let fallbackType = WorkoutType(
+                id: profile.rawValue.lowercased(),
+                name: profile.rawValue,
+                icon: profile.icon,
+                category: .other,
+                isOutdoor: false,
+                healthKitType: profile.healthKitActivityType
+            )
+            try await startWorkout(type: fallbackType)
+        }
+        currentSportProfile = profile
     }
 
     // MARK: - HR Streaming
@@ -204,6 +305,12 @@ final class PolarWorkoutManager: ObservableObject {
                                 // Update running average
                                 self.averageHeartRate = self.heartRateSamples.reduce(0, +) / self.heartRateSamples.count
                             }
+                        }
+
+                        // Update location stats if tracking
+                        if self.isTrackingLocation {
+                            self.totalDistance = self.locationTracker.totalDistance
+                            self.currentSpeed = self.locationTracker.currentSpeed
                         }
                     }
                 },
@@ -232,6 +339,12 @@ final class PolarWorkoutManager: ObservableObject {
                 let elapsed = Int(Date().timeIntervalSince(startTime))
                 await MainActor.run {
                     self.elapsedSeconds = elapsed
+
+                    // Update location stats periodically
+                    if self.isTrackingLocation {
+                        self.totalDistance = self.locationTracker.totalDistance
+                        self.currentSpeed = self.locationTracker.currentSpeed
+                    }
                 }
 
                 try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
@@ -262,5 +375,24 @@ final class PolarWorkoutManager: ObservableObject {
         } else {
             return String(format: "%02d:%02d", minutes, seconds)
         }
+    }
+
+    var formattedDistance: String {
+        if totalDistance >= 1000 {
+            return String(format: "%.2f km", totalDistance / 1000)
+        } else {
+            return String(format: "%.0f m", totalDistance)
+        }
+    }
+
+    var formattedPace: String? {
+        guard currentSpeed > 0 else { return nil }
+
+        // Pace in minutes per kilometer
+        let paceSecondsPerKm = 1000 / currentSpeed
+        let minutes = Int(paceSecondsPerKm) / 60
+        let seconds = Int(paceSecondsPerKm) % 60
+
+        return String(format: "%d:%02d /km", minutes, seconds)
     }
 }

@@ -11,6 +11,7 @@ final class SettingsManager: ObservableObject {
         static let polarDeviceId = "polarPairedDeviceId"
         static let polarDeviceName = "polarPairedDeviceName"
         static let polarBackgroundSyncEnabled = "polarBackgroundSyncEnabled"
+        static let favoriteWorkoutIds = "favoriteWorkoutIds"
     }
 
     @Published var whoopIntegrationEnabled: Bool {
@@ -49,6 +50,18 @@ final class SettingsManager: ObservableObject {
         }
     }
 
+    @Published var favoriteWorkoutIds: [String] {
+        didSet {
+            defaults.set(favoriteWorkoutIds, forKey: Keys.favoriteWorkoutIds)
+        }
+    }
+
+    var favoriteWorkouts: [WorkoutType] {
+        favoriteWorkoutIds.compactMap { id in
+            WorkoutType.all.first { $0.id == id }
+        }
+    }
+
     private init() {
         // Use App Group for sharing settings if needed
         if let groupDefaults = UserDefaults(suiteName: "group.cloud.buggygames.vigor") {
@@ -62,6 +75,13 @@ final class SettingsManager: ObservableObject {
         self.polarDeviceId = defaults.string(forKey: Keys.polarDeviceId)
         self.polarDeviceName = defaults.string(forKey: Keys.polarDeviceName)
         self.polarBackgroundSyncEnabled = defaults.bool(forKey: Keys.polarBackgroundSyncEnabled)
+
+        // Load favorite workouts or use defaults
+        if let savedFavorites = defaults.stringArray(forKey: Keys.favoriteWorkoutIds) {
+            self.favoriteWorkoutIds = savedFavorites
+        } else {
+            self.favoriteWorkoutIds = WorkoutType.defaultFavoriteIds
+        }
     }
 
     func clearPolarDevice() {

@@ -94,6 +94,30 @@ struct SettingsView: View {
                     }
                 }
 
+                // MARK: - Workout Settings
+                Section {
+                    NavigationLink {
+                        FavoriteWorkoutsSettings(settingsManager: settingsManager)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "star.fill")
+                                .font(.title2)
+                                .foregroundStyle(.yellow)
+                                .frame(width: 32)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Favorite Workouts")
+                                    .font(.body)
+                                Text("\(settingsManager.favoriteWorkoutIds.count) selected")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Workouts")
+                }
+
                 #if DEBUG
                 Section {
                     if let available = whoopService.whoopStepsAvailable {
