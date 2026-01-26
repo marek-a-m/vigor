@@ -311,7 +311,11 @@ final class PolarHRVCalculator {
 
         /// The offset used to convert skin temp to body temp
         /// Based on research: wrist skin temp is typically 7-10°C below core temp during sleep
-        static let skinToBodyOffset: Double = 8.5
+        /// Using 7.0 as a conservative middle value to avoid overestimation
+        static let skinToBodyOffset: Double = 7.0
+
+        /// Valid body temperature range for healthy adults during sleep
+        static let validBodyTempRange: ClosedRange<Double> = 35.5...38.5
     }
 
     /// Calculate sleep temperature from samples during actual sleep periods
@@ -354,40 +358,90 @@ final class PolarHRVCalculator {
 
         guard !sleepSamples.isEmpty else { return nil }
 
-        // Calculate average skin temperature
-        let skinTemp = sleepSamples.reduce(0.0) { $0 + $1.temperature } / Double(sleepSamples.count)
+        // Extract temperatures and filter obvious outliers (outside 20-38°C for skin)
+        var temperatures = sleepSamples
+            .map { $0.temperature }
+            .filter { $0 >= 20 && $0 <= 38 }
 
-        // Validate skin temperature is in reasonable range (20-38°C)
+        guard !temperatures.isEmpty else {
+            print("PolarHRVCalculator: All temperature samples outside valid range")
+            return nil
+        }
+
+        // Use IQR-based outlier filtering for more stability
+        temperatures.sort()
+        let q1Index = temperatures.count / 4
+        let q3Index = (temperatures.count * 3) / 4
+        let q1 = temperatures[q1Index]
+        let q3 = temperatures[q3Index]
+        let iqr = q3 - q1
+        let lowerBound = q1 - 1.5 * iqr
+        let upperBound = q3 + 1.5 * iqr
+
+        let filteredTemps = temperatures.filter { $0 >= lowerBound && $0 <= upperBound }
+        let tempsToUse = filteredTemps.isEmpty ? temperatures : filteredTemps
+
+        print("PolarHRVCalculator: Temperature samples - raw: \(sleepSamples.count), valid range: \(temperatures.count), after IQR filter: \(tempsToUse.count)")
+
+        // Use median for robustness against remaining outliers
+        let sortedTemps = tempsToUse.sorted()
+        let skinTemp: Double
+        if sortedTemps.count % 2 == 0 {
+            skinTemp = (sortedTemps[sortedTemps.count / 2 - 1] + sortedTemps[sortedTemps.count / 2]) / 2.0
+        } else {
+            skinTemp = sortedTemps[sortedTemps.count / 2]
+        }
+
+        // Validate skin temperature is in reasonable range
         // Typical wrist skin temp during sleep is 28-34°C
-        let isValid = skinTemp >= 20 && skinTemp <= 38
+        let skinTempValid = skinTemp >= 26 && skinTemp <= 36
 
-        if !isValid {
-            print("PolarHRVCalculator: Skin temperature \(skinTemp)°C is outside valid range (20-38°C)")
+        if !skinTempValid {
+            print("PolarHRVCalculator: Skin temperature \(skinTemp)°C is outside typical sleep range (26-36°C)")
         }
 
         // Estimate body temperature from skin temperature
-        // Research shows wrist skin temp is typically 7-10°C below core temp during sleep
         let estimatedBodyTemp = skinTemp + TemperatureResult.skinToBodyOffset
 
-        print("PolarHRVCalculator: Skin temp: \(String(format: "%.2f", skinTemp))°C -> Estimated body temp: \(String(format: "%.2f", estimatedBodyTemp))°C")
+        // Validate estimated body temperature is physiologically reasonable
+        let bodyTempValid = TemperatureResult.validBodyTempRange.contains(estimatedBodyTemp)
+        let isValid = skinTempValid && bodyTempValid
+
+        if !bodyTempValid {
+            print("PolarHRVCalculator: Estimated body temperature \(String(format: "%.1f", estimatedBodyTemp))°C is outside valid range (\(TemperatureResult.validBodyTempRange))")
+        }
+
+        print("PolarHRVCalculator: Skin temp (median): \(String(format: "%.2f", skinTemp))°C -> Estimated body temp: \(String(format: "%.2f", estimatedBodyTemp))°C (valid: \(isValid))")
 
         return TemperatureResult(
             skinTemperature: skinTemp,
             estimatedBodyTemperature: estimatedBodyTemp,
-            sampleCount: sleepSamples.count,
+            sampleCount: tempsToUse.count,
             isValid: isValid
         )
     }
 
-    /// Get the average skin temperature from samples (legacy method)
+    /// Get the median skin temperature from samples (legacy method)
     func calculateAverageTemperature(from samples: [PolarTemperatureSample]) -> Double? {
         guard !samples.isEmpty else { return nil }
 
-        let total = samples.reduce(0.0) { $0 + $1.temperature }
-        return total / Double(samples.count)
+        // Filter valid range and use median for stability
+        let validTemps = samples
+            .map { $0.temperature }
+            .filter { $0 >= 20 && $0 <= 38 }
+            .sorted()
+
+        guard !validTemps.isEmpty else { return nil }
+
+        // Return median
+        if validTemps.count % 2 == 0 {
+            return (validTemps[validTemps.count / 2 - 1] + validTemps[validTemps.count / 2]) / 2.0
+        } else {
+            return validTemps[validTemps.count / 2]
+        }
     }
 
-    /// Get nocturnal average temperature (legacy fallback)
+    /// Get nocturnal median temperature (legacy fallback)
     func calculateNocturnalTemperature(from samples: [PolarTemperatureSample]) -> Double? {
         let calendar = Calendar.current
 
