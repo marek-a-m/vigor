@@ -58,10 +58,42 @@ final class SettingsManager: ObservableObject {
 
     private init() {
         // Use App Group for sharing settings with extensions
+        let defaults: UserDefaults
         if let groupDefaults = UserDefaults(suiteName: "group.cloud.buggygames.vigor") {
-            self.defaults = groupDefaults
+            defaults = groupDefaults
         } else {
-            self.defaults = .standard
+            defaults = .standard
+        }
+        self.defaults = defaults
+
+        let cloud = iCloud
+
+        // Helper to load bool: prefer iCloud, fall back to local
+        func loadBool(forKey key: String) -> Bool {
+            if cloud.object(forKey: key) != nil {
+                let value = cloud.bool(forKey: key)
+                defaults.set(value, forKey: key)
+                return value
+            }
+            return defaults.bool(forKey: key)
+        }
+
+        // Helper to load string: prefer iCloud, fall back to local
+        func loadString(forKey key: String) -> String? {
+            if let value = cloud.string(forKey: key) {
+                defaults.set(value, forKey: key)
+                return value
+            }
+            return defaults.string(forKey: key)
+        }
+
+        // Helper to load string array: prefer iCloud, fall back to local
+        func loadStringArray(forKey key: String) -> [String]? {
+            if let value = cloud.array(forKey: key) as? [String] {
+                defaults.set(value, forKey: key)
+                return value
+            }
+            return defaults.stringArray(forKey: key)
         }
 
         // Load settings: prefer iCloud, fall back to local
@@ -82,11 +114,11 @@ final class SettingsManager: ObservableObject {
             self,
             selector: #selector(iCloudDidChange),
             name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: iCloud
+            object: cloud
         )
 
         // Sync iCloud store
-        iCloud.synchronize()
+        cloud.synchronize()
     }
 
     // MARK: - iCloud Sync
@@ -151,37 +183,6 @@ final class SettingsManager: ObservableObject {
 
         iCloud.set(value, forKey: key)
         iCloud.synchronize()
-    }
-
-    private func loadBool(forKey key: String) -> Bool {
-        // Check iCloud first (source of truth), then local
-        if iCloud.object(forKey: key) != nil {
-            let value = iCloud.bool(forKey: key)
-            // Sync to local
-            defaults.set(value, forKey: key)
-            return value
-        }
-        return defaults.bool(forKey: key)
-    }
-
-    private func loadString(forKey key: String) -> String? {
-        // Check iCloud first, then local
-        if let value = iCloud.string(forKey: key) {
-            // Sync to local
-            defaults.set(value, forKey: key)
-            return value
-        }
-        return defaults.string(forKey: key)
-    }
-
-    private func loadStringArray(forKey key: String) -> [String]? {
-        // Check iCloud first, then local
-        if let value = iCloud.array(forKey: key) as? [String] {
-            // Sync to local
-            defaults.set(value, forKey: key)
-            return value
-        }
-        return defaults.stringArray(forKey: key)
     }
 
     // MARK: - Actions
