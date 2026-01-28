@@ -65,20 +65,22 @@ final class HealthKitManager: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        async let sleep = fetchSleepData()
+        async let sleepData = fetchSleepDataWithStages()
         async let rhr = fetchRestingHeartRate()
         async let temp = fetchWristTemperature()
         async let hrvBase = fetchHRVBaseline()
         async let rhrBase = fetchRHRBaseline()
         async let tempBase = fetchTemperatureBaseline()
 
-        metrics.sleepHours = await sleep
+        let (sleepHours, sleepStages) = await sleepData
+        metrics.sleepHours = sleepHours
+        metrics.sleepStages = sleepStages
         metrics.restingHeartRate = await rhr
         metrics.hrvBaseline = await hrvBase
         metrics.rhrBaseline = await rhrBase
         metrics.temperatureBaseline = await tempBase
 
-        // Fetch HRV with WHOOP fallback if no Apple Watch data
+        // Fetch HRV
         metrics.hrv = await fetchHRVData()
 
         // Calculate temperature deviation from baseline
@@ -89,23 +91,24 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    private func fetchSleepData() async -> Double? {
-        // Prefer Polar sleep data if available (more accurate sleep tracking)
-        if let polarSleep = await fetchPolarSleep() {
-            print("HealthKitManager: Using Polar sleep: \(String(format: "%.1f", polarSleep)) hours")
-            return polarSleep
+    private func fetchSleepDataWithStages() async -> (Double?, SleepStages?) {
+        // Prefer Polar sleep data if available (more accurate sleep tracking with stages)
+        if let (hours, stages) = await fetchPolarSleepWithStages() {
+            print("HealthKitManager: Using Polar sleep: \(String(format: "%.1f", hours)) hours (deep: \(String(format: "%.1f", stages.deepPercentage))%, REM: \(String(format: "%.1f", stages.remPercentage))%)")
+            return (hours, stages)
         }
 
-        // Fall back to all sleep sources (Apple Watch, etc.)
-        let sleep = await fetchAllSleepSources()
-        if let sleep = sleep {
-            print("HealthKitManager: Using generic sleep: \(String(format: "%.1f", sleep)) hours")
+        // Fall back to all sleep sources with stages
+        if let (hours, stages) = await fetchAllSleepSourcesWithStages() {
+            print("HealthKitManager: Using generic sleep: \(String(format: "%.1f", hours)) hours (deep: \(String(format: "%.1f", stages.deepPercentage))%, REM: \(String(format: "%.1f", stages.remPercentage))%)")
+            return (hours, stages)
         }
-        return sleep
+
+        return (nil, nil)
     }
 
-    /// Fetch sleep specifically from Polar source
-    private func fetchPolarSleep() async -> Double? {
+    /// Fetch sleep specifically from Polar source with stage breakdown
+    private func fetchPolarSleepWithStages() async -> (Double, SleepStages)? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return nil
         }
@@ -140,31 +143,50 @@ final class HealthKitManager: ObservableObject {
                     (sample.metadata?[polarKey] as? Bool) == true
                 }
 
-                print("HealthKitManager: fetchPolarSleep - \(samples.count) total samples, \(polarSamples.count) Polar samples")
+                print("HealthKitManager: fetchPolarSleepWithStages - \(samples.count) total samples, \(polarSamples.count) Polar samples")
 
                 guard !polarSamples.isEmpty else {
                     continuation.resume(returning: nil)
                     return
                 }
 
-                // Use inBed samples to get total sleep duration
-                // This gives us the full sleep session time as reported by Polar
-                let inBedSamples = polarSamples.filter { $0.value == HKCategoryValueSleepAnalysis.inBed.rawValue }
+                // Calculate duration for each sleep stage
+                var stages = SleepStages()
 
-                let totalSleep = inBedSamples
-                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                for sample in polarSamples {
+                    let duration = sample.endDate.timeIntervalSince(sample.startDate) / 3600.0 // hours
 
-                let hours = totalSleep / 3600.0
-                print("HealthKitManager: Polar sleep total (from inBed): \(String(format: "%.1f", hours)) hours")
-                continuation.resume(returning: hours > 0 ? hours : nil)
+                    switch sample.value {
+                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                        stages.lightHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                        stages.deepHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                        stages.remHours += duration
+                    case HKCategoryValueSleepAnalysis.awake.rawValue:
+                        stages.awakeHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                        // Count unspecified as light sleep
+                        stages.lightHours += duration
+                    default:
+                        break // Skip inBed and other values
+                    }
+                }
+
+                let totalHours = stages.totalAsleepHours
+
+                print("HealthKitManager: Polar sleep stages - Light: \(String(format: "%.1f", stages.lightHours))h, Deep: \(String(format: "%.1f", stages.deepHours))h, REM: \(String(format: "%.1f", stages.remHours))h, Awake: \(String(format: "%.1f", stages.awakeHours))h")
+                print("HealthKitManager: Polar sleep total: \(String(format: "%.1f", totalHours))h, Efficiency: \(String(format: "%.0f", stages.efficiency))%")
+
+                continuation.resume(returning: totalHours > 0 ? (totalHours, stages) : nil)
             }
 
             healthStore.execute(query)
         }
     }
 
-    /// Fetch sleep from all sources (fallback when Polar not available)
-    private func fetchAllSleepSources() async -> Double? {
+    /// Fetch sleep from all sources with stage breakdown (fallback when Polar not available)
+    private func fetchAllSleepSourcesWithStages() async -> (Double, SleepStages)? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return nil
         }
@@ -194,24 +216,39 @@ final class HealthKitManager: ObservableObject {
                     return
                 }
 
-                // Exclude Polar samples to avoid double-counting if this is called as fallback
+                // Exclude Polar samples to avoid double-counting
                 let nonPolarSamples = samples.filter { sample in
                     (sample.metadata?[polarKey] as? Bool) != true
                 }
 
-                let asleepValues: Set<Int> = [
-                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepREM.rawValue
-                ]
+                // Calculate duration for each sleep stage
+                var stages = SleepStages()
 
-                let totalSleep = nonPolarSamples
-                    .filter { asleepValues.contains($0.value) }
-                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                for sample in nonPolarSamples {
+                    let duration = sample.endDate.timeIntervalSince(sample.startDate) / 3600.0 // hours
 
-                let hours = totalSleep / 3600.0
-                continuation.resume(returning: hours > 0 ? hours : nil)
+                    switch sample.value {
+                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                        stages.lightHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                        stages.deepHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                        stages.remHours += duration
+                    case HKCategoryValueSleepAnalysis.awake.rawValue:
+                        stages.awakeHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                        // Count unspecified as light sleep
+                        stages.lightHours += duration
+                    default:
+                        break
+                    }
+                }
+
+                let totalHours = stages.totalAsleepHours
+
+                print("HealthKitManager: Generic sleep stages - Light: \(String(format: "%.1f", stages.lightHours))h, Deep: \(String(format: "%.1f", stages.deepHours))h, REM: \(String(format: "%.1f", stages.remHours))h")
+
+                continuation.resume(returning: totalHours > 0 ? (totalHours, stages) : nil)
             }
 
             healthStore.execute(query)
