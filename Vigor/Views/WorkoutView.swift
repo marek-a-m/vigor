@@ -6,6 +6,7 @@ struct WorkoutView: View {
     @ObservedObject private var polarService = PolarBLEService.shared
     @ObservedObject private var settingsManager = SettingsManager.shared
     @ObservedObject private var locationTracker = LocationTracker.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var healthKitManager: HealthKitManager
 
@@ -108,6 +109,12 @@ struct WorkoutView: View {
                 if case .error(let message) = newState {
                     errorMessage = message
                     showError = true
+                }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    // Resume HR streaming if returning from background with active workout
+                    workoutManager.resumeStreamingIfNeeded()
                 }
             }
         }

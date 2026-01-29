@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import HealthKit
 import CoreLocation
 import PolarBleSdk
@@ -130,7 +131,41 @@ final class PolarWorkoutManager: ObservableObject {
     private var workoutStartTime: Date?
     private var capturedRouteLocations: [CLLocation] = []
 
-    private init() {}
+    private init() {
+        // Listen for app going to background - stop HR streaming to prevent device lock
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleAppBackground()
+            }
+        }
+    }
+
+    /// Stop HR streaming when app goes to background
+    /// This prevents device from getting stuck in streaming mode if app is killed
+    private func handleAppBackground() {
+        if workoutState.isActive {
+            print("PolarWorkout: App going to background with active workout - stopping HR stream")
+            stopHRStreaming()
+            // Note: workout state remains active, but HR streaming stops
+            // User can continue workout when returning to foreground
+        }
+    }
+
+    /// Resume HR streaming when returning to foreground with active workout
+    func resumeStreamingIfNeeded() {
+        guard workoutState.isActive,
+              hrStreamDisposable == nil,
+              let deviceId = SettingsManager.shared.polarDeviceId else {
+            return
+        }
+
+        print("PolarWorkout: Resuming HR streaming for active workout")
+        startHRStreaming(deviceId: deviceId)
+    }
 
     // MARK: - Workout Control (New WorkoutType API)
 

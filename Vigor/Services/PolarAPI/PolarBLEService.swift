@@ -180,6 +180,33 @@ extension PolarBLEService: PolarBleApiObserver {
             settingsManager.polarDeviceName = identifier.name
 
             print("PolarBLE: Connected to \(identifier.name) (\(identifier.deviceId))")
+
+            // Clean up any stale device state from previous sessions
+            // This fixes issues where app crash left device in sync/streaming mode
+            await cleanupDeviceState(deviceId: identifier.deviceId)
+        }
+    }
+
+    /// Send terminate notifications to ensure device is in clean state
+    /// Prevents issues if previous app session crashed during sync or workout
+    private func cleanupDeviceState(deviceId: String) async {
+        print("PolarBLE: Cleaning up device state...")
+
+        // Send terminate and stop sync notifications to reset device state
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            api.sendTerminateAndStopSyncNotifications(identifier: deviceId)
+                .subscribe(
+                    onCompleted: {
+                        print("PolarBLE: Device state cleanup completed")
+                        continuation.resume()
+                    },
+                    onError: { error in
+                        // Ignore errors - device might not have been in sync mode
+                        print("PolarBLE: Device state cleanup (expected if not in sync): \(error.localizedDescription)")
+                        continuation.resume()
+                    }
+                )
+                .disposed(by: disposeBag)
         }
     }
 
