@@ -98,6 +98,12 @@ final class HealthKitManager: ObservableObject {
             return (hours, stages)
         }
 
+        // Fallback: check last 7 days for most recent Polar sleep (in case sync was delayed)
+        if let (hours, stages) = await fetchRecentPolarSleep(daysBack: 7) {
+            print("HealthKitManager: Using recent Polar sleep: \(String(format: "%.1f", hours)) hours (deep: \(String(format: "%.1f", stages.deepPercentage))%, REM: \(String(format: "%.1f", stages.remPercentage))%)")
+            return (hours, stages)
+        }
+
         // Fall back to all sleep sources with stages
         if let (hours, stages) = await fetchAllSleepSourcesWithStages() {
             print("HealthKitManager: Using generic sleep: \(String(format: "%.1f", hours)) hours (deep: \(String(format: "%.1f", stages.deepPercentage))%, REM: \(String(format: "%.1f", stages.remPercentage))%)")
@@ -105,6 +111,100 @@ final class HealthKitManager: ObservableObject {
         }
 
         return (nil, nil)
+    }
+
+    /// Fallback: fetch most recent Polar sleep from last N days
+    private func fetchRecentPolarSleep(daysBack: Int) async -> (Double, SleepStages)? {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startDate = calendar.date(byAdding: .day, value: -daysBack, to: calendar.startOfDay(for: now))!
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: now,
+            options: .strictStartDate
+        )
+
+        let polarKey = Self.polarSourceKey
+
+        return await withCheckedContinuation { continuation in
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                guard let samples = samples as? [HKCategorySample], error == nil else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Filter to Polar samples
+                let polarSamples = samples.filter { sample in
+                    (sample.metadata?[polarKey] as? Bool) == true
+                }
+
+                guard !polarSamples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Find the most recent sleep session (samples within same night)
+                // Group by sleep start date (samples from same night have similar start times)
+                let mostRecentEnd = polarSamples.first?.endDate ?? now
+                let sessionStart = calendar.date(byAdding: .hour, value: -12, to: mostRecentEnd)!
+
+                let sessionSamples = polarSamples.filter { sample in
+                    sample.endDate >= sessionStart && sample.endDate <= mostRecentEnd
+                }
+
+                guard !sessionSamples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Calculate stages from this session
+                var stages = SleepStages()
+                for sample in sessionSamples {
+                    let duration = sample.endDate.timeIntervalSince(sample.startDate) / 3600.0
+
+                    switch sample.value {
+                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                        stages.lightHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                        stages.deepHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                        stages.remHours += duration
+                    case HKCategoryValueSleepAnalysis.awake.rawValue:
+                        stages.awakeHours += duration
+                    case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                        stages.lightHours += duration
+                    case HKCategoryValueSleepAnalysis.inBed.rawValue:
+                        // If only inBed samples exist (old Polar data), count as unspecified sleep
+                        if stages.totalAsleepHours == 0 {
+                            stages.lightHours += duration
+                        }
+                    default:
+                        break
+                    }
+                }
+
+                let totalHours = stages.totalAsleepHours
+                if totalHours > 0 {
+                    print("HealthKitManager: Found recent Polar sleep from \(sessionSamples.count) samples")
+                    continuation.resume(returning: (totalHours, stages))
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+
+            healthStore.execute(query)
+        }
     }
 
     /// Fetch sleep specifically from Polar source with stage breakdown
